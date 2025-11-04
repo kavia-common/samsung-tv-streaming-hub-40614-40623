@@ -8,7 +8,7 @@ Features implemented:
 - Player screen using HTML5 video suited for Tizen runtime.
 - Lightweight global store for focus and selection.
 - Router between views using react-router-dom.
-- Vite 5 dev server bound to port 3000 with strictPort.
+- Vite 5 dev server bound to port 3000 with strictPort and host: true (0.0.0.0), with allowedHosts for localhost/127.0.0.1/0.0.0.0.
 
 Run locally:
 - npm install

@@ -8,6 +8,10 @@ import react from '@vitejs/plugin-react'
  * - strictPort: true on 3000
  * - Prevent dev restarts from .env/config changes by ignoring these files
  * - Do not touch/write .env at runtime anywhere in the project (no scripts should)
+ *
+ * Additionally:
+ * - Use fs.strict/watch.ignored to avoid restarts when external processes touch files like vite.config.js or .env.
+ * - Ensure allowedHosts includes 0.0.0.0 and common local hosts.
  */
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -16,6 +20,13 @@ export default defineConfig(({ mode }) => {
   const root = new URL('.', import.meta.url).pathname
   const env = loadEnv(mode, root, '')
   const port = Number(env.PORT) || 3000
+
+  const ignoredGlobs = [
+    '**/.env',
+    '**/.env.*',
+    '**/post_process_status.lock',
+    '**/vite.config.*',
+  ]
 
   return {
     plugins: [react()],
@@ -32,17 +43,14 @@ export default defineConfig(({ mode }) => {
       ],
       // Avoid hot-restart loop when .env/vite.config change externally in CI
       watch: {
-        // Ignore .env* files and vite config itself during dev file watching to prevent restarts
-        ignored: [
-          '**/.env',
-          '**/.env.*',
-          // Ignore any lock/status files that CI may touch
-          '**/post_process_status.lock',
-          // Avoid bouncing server if config file is touched by external process
-          '**/vite.config.*',
-        ],
+        ignored: ignoredGlobs,
+      },
+      // Also ensure file system ignores at a lower level
+      fs: {
+        strict: true,
       },
     },
+    // Mirror settings for preview just in case it's used in CI
     preview: {
       host: true,
       port,
@@ -53,8 +61,9 @@ export default defineConfig(({ mode }) => {
         '0.0.0.0',
       ],
     },
-    // Narrow the file system watcher to src and index.html for stability
-    // This reduces overhead and prevents accidental watches of root files
+    // Provide chokidar watch ignores globally for extra safety with some toolchains
+    // Vite respects server.watch.ignored; but some environments also read top-level "watch" field.
+    // Keeping only server.watch is generally sufficient, so we avoid redundant top-level config.
     optimizeDeps: {
       // keep default
     },

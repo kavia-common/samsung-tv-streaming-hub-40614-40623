@@ -2,8 +2,8 @@
 
 - Current environment uses Node 18.x.
 - Vite 7 requires Node >= 20.19+. To keep compatibility with Node 18, we pinned:
-  - vite: ^5.4.11
-  - @vitejs/plugin-react: ^4.3.4
+  - vite: ^5.4.21
+  - @vitejs/plugin-react: ^4.7.0
 
 Why this change?
 - Attempting to run with Vite 7 on Node 18 caused failures in dev startup, including errors like `TypeError: crypto.hash is not a function` due to internal dependency hashing using newer Node APIs.
@@ -16,7 +16,8 @@ Local development
 
 Dev server stability
 - The Vite dev server is configured to ignore changes to `.env`, `.env.*`, `vite.config.*`, and `post_process_status.lock` during `npm run dev`. This prevents rapid restart loops in CI/containers when external processes touch these files.
-- Do not run any script that modifies `.env` while the dev server is running.
+- File system access is restricted (fs.strict) and chokidar ignore globs are applied via server.watch.ignored.
+- Do not run any script that modifies `.env` or touches `vite.config.js` while the dev server is running.
 
 Upgrading later
 - When moving to Node >=20.19, update devDependencies in package.json:
