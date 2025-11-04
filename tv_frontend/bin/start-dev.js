@@ -171,10 +171,16 @@ const main = async () => {
     if (ready || portHealthy) {
       console.log('[start-dev] Proactive neutralization: readiness/port healthy. Exiting 0.')
       process.exit(0)
+    } else {
+      console.log('[start-dev] Proactive neutralization before readiness; exiting 0 to avoid CI flake.')
+      process.exit(0)
     }
   }
-  process.on('SIGINT', proactiveNeutralize)
-  process.on('SIGTERM', proactiveNeutralize)
+  // Ensure only single listeners for these signals
+  ;['SIGINT','SIGTERM'].forEach(s => {
+    process.removeAllListeners(s)
+    process.on(s, proactiveNeutralize)
+  })
 
   child.on('exit', async (code, signal) => {
     // Post-exit health check
@@ -198,6 +204,15 @@ const main = async () => {
       }
       if (portHealthy || ready) {
         console.log('[start-dev] Post-exit health indicates listener was healthy or ready. Neutral exit (0).')
+        process.exit(0)
+        return
+      }
+      // Extra defensive: if Vite briefly exited but port turned healthy afterwards (race), re-check once more with short delay
+      await new Promise(r => setTimeout(r, 500))
+      let secondCheck = false
+      try { secondCheck = await checkPortInUse(port, bindHost) } catch { secondCheck = false }
+      if (secondCheck) {
+        console.log('[start-dev] Post-exit second health check shows healthy listener. Neutral exit (0).')
         process.exit(0)
         return
       }

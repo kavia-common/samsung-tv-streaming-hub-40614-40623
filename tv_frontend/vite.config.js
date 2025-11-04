@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
   const root = __dirname
 
   // Never derive port from changing env while server runs; lock to 3000 unless user sets PORT before start.
+  // Important: PORT/HOST must be provided via environment variables (see .env.example). Do NOT append CLI flags to npm run dev.
   const env = loadEnv(mode, root, '')
   // Ensure numeric port; default to 3000 if invalid to keep strictPort stable
   const parsed = Number(env?.PORT)
