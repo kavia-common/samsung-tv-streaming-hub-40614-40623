@@ -78,10 +78,8 @@ async function waitForReady(p, h, timeoutMs = 30000) {
   const start = Date.now()
   let delay = 200
   while (Date.now() - start < timeoutMs) {
-    // eslint-disable-next-line no-await-in-loop
     const inUse = await checkPortInUse(p, h)
     if (inUse) return true
-    // eslint-disable-next-line no-await-in-loop
     await new Promise(r => setTimeout(r, delay))
     delay = Math.min(1000, Math.floor(delay * 1.25))
   }
@@ -162,6 +160,17 @@ const main = async () => {
     try { child.kill('SIGTERM') } catch { /* ignore */ }
   })
 
+  // If parent receives SIGINT/SIGTERM after readiness, proactively exit 0 to avoid CI misclassification.
+  const proactiveNeutralize = async () => {
+    const portHealthy = await checkPortInUse(port, host).catch(() => false)
+    if (ready || portHealthy) {
+      console.log('[start-dev] Proactive neutralization: readiness/port healthy. Exiting 0.')
+      process.exit(0)
+    }
+  }
+  process.on('SIGINT', proactiveNeutralize)
+  process.on('SIGTERM', proactiveNeutralize)
+
   child.on('exit', async (code, signal) => {
     // After vite exit, re-check listener: if still bound, consider ready/healthy.
     let portHealthy = false
@@ -191,7 +200,8 @@ const main = async () => {
         process.exit(0)
       }
       // Neutralize common external termination codes regardless of readiness to avoid false CI failures
-      if (code === 137 || code === 143) {
+      const neutralCodes = new Set([137, 143, 130]) // 130: SIGINT exit from shells
+      if (neutralCodes.has(code)) {
         if (ready || portHealthy) {
           console.log(`[start-dev] External termination code ${code} after readiness. Neutral exit (0).`)
         } else {

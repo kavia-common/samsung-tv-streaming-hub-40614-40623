@@ -1,3 +1,4 @@
+/* global process */
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
@@ -86,7 +87,8 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         clientPort: port,
         protocol: 'ws',
-        overlay: true,
+        // Disable full-screen overlay errors in CI to reduce UI noise and memory churn
+        overlay: false,
       },
 
       // Watch tuning: ignore volatile files and avoid thrashing
@@ -99,10 +101,10 @@ export default defineConfig(({ mode }) => {
           '**/yarn.lock',
         ],
         awaitWriteFinish: {
-          stabilityThreshold: 300,
-          pollInterval: 120,
+          stabilityThreshold: 400,
+          pollInterval: 150,
         },
-        usePolling: false,
+        usePolling: Boolean(process.env.VITE_WATCH_POLLING) || false,
       },
 
       // Restrict file system access to this root only
