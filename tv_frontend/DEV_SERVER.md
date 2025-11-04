@@ -70,3 +70,4 @@ Tip:
 Important:
 - Do NOT run: `npm run dev -- --port 3000 --host 0.0.0.0` in CI. That bypasses the launcher protections and can surface exit 137 as a failure.
 - Use env: `PORT=3000 HOST=localhost npm run dev`
+- Reference `.env.example` for all supported variables; you may `cp .env.example .env` and adjust as needed.

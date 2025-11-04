@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => {
   // Ensure numeric port; default to 3000 if invalid to keep strictPort stable
   const parsed = Number(env?.PORT)
   const port = Number.isFinite(parsed) && parsed > 0 ? parsed : 3000
+  // Normalize host env for allowedHosts (empty -> undefined)
+  const envHost = (env?.HOST || '').trim() || undefined
 
   // Files to ignore to prevent reload loops from external touches.
   // These are intentionally ignored because some CI/container orchestrations touch them during lifecycle steps,
@@ -76,14 +78,16 @@ export default defineConfig(({ mode }) => {
       // Explicit allow-list to prevent host header rejections
       // Include localhost, 127.0.0.1 and 0.0.0.0 for container/CI use; keep workspace host if present
       // Allow standard local/container hosts and optionally a HOST provided via env for CI environments
-      allowedHosts: Array.from(new Set(
-        [
-          'localhost',
-          '127.0.0.1',
-          '0.0.0.0',
-          (env?.HOST || '').trim(),
-        ].filter(Boolean)
-      )),
+      allowedHosts: Array.from(
+        new Set(
+          [
+            'localhost',
+            '127.0.0.1',
+            '0.0.0.0',
+            envHost,
+          ].filter(Boolean)
+        )
+      ),
 
       // Stable HMR in containerized environments
       hmr: {

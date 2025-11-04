@@ -21,7 +21,7 @@ Important:
   - PORT=3000 npm run dev
   - HOST=my-ci-host.internal npm run dev
 
-Never end the dev step with explicit process group kills like `kill -9 -$$`. The launcher neutralizes terminations automatically after readiness. If a dev server is already on port 3000, reuse it and exit 0.
+Never end the dev step with explicit process group kills like `kill -9 -$$`. The launcher neutralizes terminations automatically after readiness. If a dev server is already on port 3000, reuse it and exit 0. The CI should not forcibly SIGKILL the shell; allow the job to complete naturally after readiness if possible.
 
 Behavior:
 - If port 3000 is already in use, the script exits 0 assuming a healthy dev server is running.

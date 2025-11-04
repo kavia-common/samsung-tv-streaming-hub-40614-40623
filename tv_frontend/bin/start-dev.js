@@ -37,7 +37,10 @@ try {
   // ignore
 }
 
-// If someone called "npm run dev -- --port ... --host ...", warn and ignore extra flags to keep protections active.
+/**
+ * If someone called "npm run dev -- --port ... --host ...", warn and ignore extra flags to keep protections active.
+ * Important: do NOT forward these to vite; our launcher controls host/port and strictPort explicitly.
+ */
 const extraArgs = process.argv.slice(2)
 if (extraArgs.length > 0) {
   console.log('[start-dev] Warning: Extra CLI flags passed to dev are ignored. Use env PORT/HOST instead.')
@@ -130,6 +133,7 @@ const main = async () => {
     if (ok) {
       ready = true
       console.log(`[start-dev] Health: Vite listener detected on ${bindHost}:${port}.`)
+      console.log('[start-dev] Ready: dev server is healthy; future external terminations will be neutralized (exit 0).')
     } else {
       console.warn('[start-dev] Warning: Listener not detected within 60s (not a failure). Continuing to monitor; external terminations will be neutralized.')
     }

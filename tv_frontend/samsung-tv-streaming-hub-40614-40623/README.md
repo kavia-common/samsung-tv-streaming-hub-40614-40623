@@ -16,4 +16,4 @@ CI/containers usage for tv_frontend:
 Documentation:
 - See tv_frontend/CI_README.md for CI-specific notes and troubleshooting.
 - See tv_frontend/DEV_SERVER.md for dev server behavior and configuration.
-- See tv_frontend/.env.example for supported environment variables (PORT, HOST).
+- See tv_frontend/.env.example for supported environment variables (PORT, HOST) and how to use them instead of CLI flags.
