@@ -15,4 +15,5 @@ Run locally:
 Notes:
 - Do not run any script or watcher that writes to `.env`, `vite.config.*`, or `index.html` during `npm run dev`. This will cause unnecessary restarts or instability.
 - For containers/CI, port is locked to 3000 and will not auto-increment.
+- If you see "Error: Port 3000 is already in use", it means another instance is already running and healthy on that port. Either reuse the running instance or stop it before starting a new one. This is expected with strictPort: true.
 - If you still observe a restart mentioning "vite.config.js changed", ensure no external process touches that file; the watcher in this repo already ignores it.

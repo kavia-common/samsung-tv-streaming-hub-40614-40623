@@ -12,11 +12,11 @@ import react from '@vitejs/plugin-react'
  * Additionally:
  * - Use fs.strict/watch.ignored to avoid restarts when external processes touch files like vite.config.js or .env.
  * - Ensure allowedHosts includes 0.0.0.0 and common local hosts.
+ * - Set HMR clientPort/host to keep hot updates stable behind proxies.
  */
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env variables so PORT from .env is respected in dev
-  // Use the project root derived from this config file location to avoid using process.*
+  // Resolve project root based on this config file, avoiding process.cwd()
   const root = new URL('.', import.meta.url).pathname
   const env = loadEnv(mode, root, '')
   const port = Number(env.PORT) || 3000
@@ -46,17 +46,26 @@ export default defineConfig(({ mode }) => {
         '0.0.0.0',
       ],
 
-      // Limit the watch scope to src by default, while explicitly ignoring volatile files.
+      // HMR stability in containerized/proxied environments
+      hmr: {
+        host: '0.0.0.0',
+        clientPort: port,
+        protocol: 'ws',
+      },
+
+      // Limit the watch scope by ignoring volatile files.
       watch: {
-        // Use a function to be robust with different chokidar versions
-        // Vite will pass these to chokidar's ignored option
         ignored: ignoredGlobs,
       },
 
-      // Also ensure file system access restrictions to project root
+      // Restrict file system access to the project root
       fs: {
         strict: true,
+        allow: [root],
       },
+
+      // Ensure we are not running middleware mode in CI
+      middlewareMode: false,
     },
 
     // Mirror settings for preview
@@ -71,11 +80,6 @@ export default defineConfig(({ mode }) => {
       ],
     },
 
-    // Narrow the HMR watcher to the src directory to reduce noise
-    // while still allowing normal module updates.
-    // Note: This doesn't block Vite from serving index.html; it only narrows change detection.
-    // For Vite 5, we can rely on server.watch.ignored and let HMR handle src/.
-    // Keeping optimizeDeps default.
     optimizeDeps: {},
   }
 })
