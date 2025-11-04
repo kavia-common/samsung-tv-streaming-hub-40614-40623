@@ -3,13 +3,15 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useTizenKeys } from '../hooks/useTizenKeys'
 import { useStore } from '../store.jsx'
 import { categories } from '../mockData'
+import { UI_SETTINGS } from '../uiSettings'
 
 /**
- * Home screen:
- * - Renders multiple horizontal carousels for categories
- * - Focus: row/col item with LEFT/RIGHT to move within row and UP/DOWN to change category row
- * - ENTER navigates to player for the focused item
- * - LEFT at col 0 moves focus to nav
+ * Home screen (no-scroll):
+ * - Uses pagination for carousels (no native scroll). LEFT/RIGHT adjusts col and shifts page when crossing bounds.
+ * - UP/DOWN changes category row.
+ * - ENTER navigates to player for the focused item.
+ * - LEFT at col 0 moves focus to nav.
+ * Animations rely on transform/opacity only for 60fps on TV hardware.
  */
 export default function Home() {
   const nav = useNavigate()
@@ -17,6 +19,7 @@ export default function Home() {
   const { state, setHomeFocus, setSelectedItem } = useStore()
 
   const rows = useMemo(() => categories, [])
+  const pageSize = UI_SETTINGS.homeItemsPerPage
 
   useEffect(() => {
     // keep indices within bounds in case of navigation back
@@ -26,6 +29,14 @@ export default function Home() {
       setHomeFocus({ row: r, col: c })
     }
   }, [rows, setHomeFocus, state.focus.home.row, state.focus.home.col])
+
+  function visibleSliceForRow(rIndex) {
+    const currentCol = state.focus.home.row === rIndex ? state.focus.home.col : 0
+    const page = Math.floor(currentCol / pageSize)
+    const start = page * pageSize
+    const end = start + pageSize
+    return { start, end }
+  }
 
   useTizenKeys({
     onLeft: () => {
@@ -63,27 +74,39 @@ export default function Home() {
       <div style={{ padding: '18px 18px 8px 18px', color: '#374151', fontWeight: 700 }}>
         Browse
       </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'0 8px 12px 8px' }}>
-        {rows.map((cat, rIndex) => (
-          <section key={cat.id} className="carousel surface-card">
-            <div className="carousel-title">{cat.title}</div>
-            <div className="carousel-row">
-              {cat.items.map((it, cIndex) => {
-                const focused = rIndex === state.focus.home.row && cIndex === state.focus.home.col
-                return (
-                  <div
-                    key={it.id}
-                    className={'card ' + (focused ? 'focused' : '')}
-                    role="button"
-                    aria-label={it.title}
-                  >
-                    <div className="card-label">{it.title}</div>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        ))}
+      <div style={{ flex:1, overflow:'hidden', padding:'0 8px 12px 8px' }}>
+        {rows.map((cat, rIndex) => {
+          const { start, end } = visibleSliceForRow(rIndex)
+          const items = cat.items.slice(start, end)
+          const currentPage = Math.floor((state.focus.home.row === rIndex ? state.focus.home.col : 0) / pageSize)
+          return (
+            <section key={cat.id} className="carousel surface-card fx-fade-in">
+              <div className="carousel-title">{cat.title}</div>
+              <div
+                className="carousel-row"
+                style={{
+                  // Horizontal slide to suggest there are more items without scrolling
+                  transform: 'translate3d(0,0,0)',
+                }}
+              >
+                {items.map((it, idx) => {
+                  const absoluteIndex = start + idx
+                  const focused = rIndex === state.focus.home.row && absoluteIndex === state.focus.home.col
+                  return (
+                    <div
+                      key={`${it.id}-${currentPage}-${idx}`}
+                      className={'card ' + (focused ? 'focused' : '')}
+                      role="button"
+                      aria-label={it.title}
+                    >
+                      <div className="card-label">{it.title}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
       </div>
     </div>
   )

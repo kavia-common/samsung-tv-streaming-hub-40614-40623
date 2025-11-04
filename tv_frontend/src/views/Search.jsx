@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store.jsx'
 import { useTizenKeys } from '../hooks/useTizenKeys'
 import { searchItems } from '../mockData'
+import { UI_SETTINGS } from '../uiSettings'
 
 const keyboardRows = [
   'QWERTYUIOP'.split(''),
@@ -11,15 +12,24 @@ const keyboardRows = [
 ]
 
 /**
- * Search screen:
- * - Focus zone between keyboard and results list
- * - Keyboard supports letters, backspace, space, OK (stay)
- * - Results refreshed as you type; ENTER on result plays it
+ * Search screen (no-scroll):
+ * - Keyboard zone and paginated results grid (no container scrolling).
+ * - Results grid paginates using cols x rows from UI settings.
  */
 export default function Search() {
   const nav = useNavigate()
   const { state, setSearch, setSearchFocus, setSelectedItem } = useStore()
-  const results = useMemo(() => searchItems(state.searchQuery), [state.searchQuery])
+  const allResults = useMemo(() => searchItems(state.searchQuery), [state.searchQuery])
+
+  const COLS = UI_SETTINGS.searchResultsCols
+  const ROWS = UI_SETTINGS.searchResultsRows
+  const PAGE_SIZE = COLS * ROWS
+
+  const currentIdx = state.focus.search.resultsIndex
+  const page = Math.floor(currentIdx / PAGE_SIZE)
+  const start = page * PAGE_SIZE
+  const end = start + PAGE_SIZE
+  const pageResults = allResults.slice(start, end)
 
   function moveKeyboard(dr, dc) {
     const { keyRow, keyCol } = state.focus.search
@@ -41,12 +51,12 @@ export default function Search() {
       return
     }
     if (key === '⇦') {
-      // move focus back to nav via Home logic; emulate Left on first col
+      // move focus to first key to hint nav access via Home LEFT handling
       setSearchFocus({ ...state.focus.search, zone: 'keyboard', keyRow, keyCol: 0 })
       return
     }
     if (key === 'OK') {
-      // could trigger search submit; here no-op as we search live
+      // no-op (live search)
       return
     }
     setSearch(state.searchQuery + key)
@@ -57,46 +67,41 @@ export default function Search() {
       if (state.focus.search.zone === 'keyboard') {
         moveKeyboard(0, -1)
       } else {
-        // From results, go back to keyboard zone
-        setSearchFocus({ ...state.focus.search, zone: 'keyboard' })
+        const idx = Math.max(0, currentIdx - 1)
+        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: idx })
       }
     },
     onRight: () => {
       if (state.focus.search.zone === 'keyboard') {
         moveKeyboard(0, +1)
       } else {
-        // stay in results grid; move focus to next item
-        const idx = state.focus.search.resultsIndex
-        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: Math.min(results.length - 1, idx + 1) })
+        const idx = Math.min(allResults.length - 1, currentIdx + 1)
+        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: idx })
       }
     },
     onUp: () => {
       if (state.focus.search.zone === 'keyboard') {
         moveKeyboard(-1, 0)
       } else {
-        // move up in results grid (4 cols)
-        const idx = state.focus.search.resultsIndex
-        const n = Math.max(0, idx - 4)
-        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: n })
+        const idx = Math.max(0, currentIdx - COLS)
+        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: idx })
       }
     },
     onDown: () => {
       if (state.focus.search.zone === 'keyboard') {
-        // jump to results if any
-        if (results.length > 0) {
+        if (allResults.length > 0) {
           setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: 0 })
         }
       } else {
-        const idx = state.focus.search.resultsIndex
-        const n = Math.min(results.length - 1, idx + 4)
-        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: n })
+        const idx = Math.min(allResults.length - 1, currentIdx + COLS)
+        setSearchFocus({ ...state.focus.search, zone: 'results', resultsIndex: idx })
       }
     },
     onEnter: () => {
       if (state.focus.search.zone === 'keyboard') {
         activateKey()
       } else {
-        const item = results[state.focus.search.resultsIndex]
+        const item = allResults[currentIdx]
         if (item) {
           setSelectedItem(item)
           nav(`/player/${item.id}`)
@@ -126,15 +131,18 @@ export default function Search() {
             }))}
           </div>
         </div>
-        <div className="surface-card" style={{ overflow:'auto' }}>
-          <div style={{ padding:'12px 16px', fontWeight:700, color:'#374151' }}>Results</div>
+        <div className="surface-card" style={{ overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', fontWeight:700, color:'#374151' }}>
+            Results {allResults.length > PAGE_SIZE ? `(Page ${page + 1}/${Math.max(1, Math.ceil(allResults.length / PAGE_SIZE))})` : ''}
+          </div>
           <div className="results">
-            {results.length === 0 ? (
+            {pageResults.length === 0 ? (
               <div style={{ padding:'16px', color:'#6b7280' }}>No results</div>
-            ) : results.map((r, idx) => {
-              const focused = state.focus.search.zone === 'results' && state.focus.search.resultsIndex === idx
+            ) : pageResults.map((r, idx) => {
+              const absoluteIdx = start + idx
+              const focused = state.focus.search.zone === 'results' && state.focus.search.resultsIndex === absoluteIdx
               return (
-                <div key={r.id} className={'result-item ' + (focused ? 'focused' : '')}>
+                <div key={`${r.id}-${page}-${idx}`} className={'result-item ' + (focused ? 'focused' : '')}>
                   <div style={{ fontWeight:700 }}>{r.title}</div>
                 </div>
               )

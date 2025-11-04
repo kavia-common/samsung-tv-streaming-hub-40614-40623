@@ -11,6 +11,7 @@
   --retro-scanline: linear-gradient(rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.03) 50%);
 }
 
+/* Fix TV-safe viewport and disable scroll globally */
 html, body, #root {
   width: 1920px;
   height: 1080px;
@@ -20,6 +21,32 @@ html, body, #root {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior: none;
+}
+body, #root, .app-shell, .main-area, .surface-card {
+  will-change: transform, opacity;
+  transform: translate3d(0,0,0);
+}
+
+/* Retro subtle vignette and lines overlay for visual depth without reflow */
+body::after {
+  content:'';
+  position:fixed;
+  pointer-events:none;
+  inset:0;
+  background:
+    radial-gradient(120% 120% at 50% 30%, rgba(37,99,235,0.08), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0, rgba(0,0,0,0.02) 2px, transparent 3px, transparent 6px);
+  mix-blend-mode: multiply;
+}
+
+/* Subtle entrance animation container helper */
+.fx-fade-in {
+  animation: fxFade .18s ease both;
+}
+@keyframes fxFade {
+  from { opacity: 0; transform: translate3d(0,4px,0); }
+  to { opacity: 1; transform: translate3d(0,0,0); }
 }
 
 .app-shell {
@@ -68,14 +95,16 @@ html, body, #root {
   background: transparent;
   color: var(--color-text);
   outline: none;
-  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.1s ease, background 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+  will-change: transform, box-shadow, border-color, background-color;
+  transform: translate3d(0,0,0);
 }
 
 .nav-item.focused {
   border-color: var(--color-primary);
   background: rgba(37,99,235,0.08);
   box-shadow: 0 0 0 4px rgba(37,99,235,0.15), inset 0 0 0 2px #fff;
-  transform: translateX(6px);
+  transform: translate3d(6px,0,0);
 }
 
 /* Main content */
@@ -128,6 +157,8 @@ html, body, #root {
   display:flex;
   gap: 14px;
   overflow:hidden;
+  will-change: transform, opacity;
+  transform: translate3d(0,0,0);
 }
 .card {
   width: 280px;
@@ -140,7 +171,9 @@ html, body, #root {
   align-items:flex-end;
   padding: 10px;
   color: var(--color-text);
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease, opacity .1s ease;
+  will-change: transform, box-shadow, border-color, opacity;
+  transform: translate3d(0,0,0);
 }
 .card::before {
   content:'';
@@ -162,7 +195,7 @@ html, body, #root {
 .card.focused {
   border-color: var(--color-secondary);
   box-shadow: 0 0 0 4px rgba(245,158,11,0.15), 0 12px 28px rgba(17,24,39,0.18);
-  transform: scale(1.04);
+  transform: scale(1.04) translate3d(0,0,0);
 }
 
 /* Search */
@@ -174,6 +207,9 @@ html, body, #root {
   border-radius: 12px;
   border: 2px solid rgba(17,24,39,0.08);
   background: var(--color-surface);
+  transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease;
+  will-change: transform, box-shadow, border-color;
+  transform: translate3d(0,0,0);
 }
 .search-bar.focused {
   border-color: var(--color-primary);
@@ -199,6 +235,9 @@ html, body, #root {
   background: rgba(17,24,39,0.03);
   font-size: 18px;
   user-select:none;
+  transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease;
+  will-change: transform, box-shadow, border-color;
+  transform: translate3d(0,0,0);
 }
 .key.wide {
   grid-column: span 2;
@@ -207,6 +246,7 @@ html, body, #root {
   border-color: var(--color-secondary);
   background: rgba(245,158,11,0.08);
   box-shadow: 0 0 0 4px rgba(245,158,11,0.15);
+  transform: translate3d(0,-1px,0);
 }
 
 /* Results list */
@@ -224,11 +264,13 @@ html, body, #root {
   padding: 10px;
   display:flex;
   align-items:flex-end;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease, opacity .1s ease;
+  will-change: transform, box-shadow, border-color, opacity;
+  transform: translate3d(0,0,0);
 }
 .result-item.focused {
   border-color: var(--color-primary);
-  transform: scale(1.03);
+  transform: scale(1.03) translate3d(0,0,0);
   box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
 }
 
@@ -254,4 +296,9 @@ html, body, #root {
   height:1px; width:1px;
   overflow:hidden; clip:rect(1px,1px,1px,1px);
   white-space:nowrap;
+}
+
+/* Utility to hide scrollbars if any internal elements try to scroll */
+.no-scroll {
+  overflow: hidden !important;
 }

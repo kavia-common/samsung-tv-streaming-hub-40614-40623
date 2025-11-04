@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
     '**/post_process_status.lock',
     './post_process_status.lock',
     'post_process_status.lock',
-    // config and html that should not trigger dev reload loops
+    // config and html that should 0ot trigger dev reload loops
     '**/vite.config.*',
     './vite.config.*',
     'vite.config.*',

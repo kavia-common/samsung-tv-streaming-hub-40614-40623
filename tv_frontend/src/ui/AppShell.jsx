@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTizenKeys } from '../hooks/useTizenKeys'
 import { useStore } from '../store.jsx'
+import { isScrollDisabled } from '../uiSettings'
 import '../theme.css'
 
 /**
@@ -17,11 +18,22 @@ import '../theme.css'
  * - BACK navigates up: from player -> previous, from search/home -> stays or logs
  */
 
-// PUBLIC_INTERFACE
+ // PUBLIC_INTERFACE
 export default function AppShell() {
   const nav = useNavigate()
   const loc = useLocation()
   const { state, setNavFocus } = useStore()
+
+  // Enforce body no-scroll if configured
+  useEffect(() => {
+    if (isScrollDisabled()) {
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      // keep hidden for the app lifetime; no-op on unmount
+    }
+  }, [])
 
   const title = useMemo(() => {
     if (loc.pathname.startsWith('/search')) return 'Search'
@@ -72,7 +84,10 @@ export default function AppShell() {
           <div className="header-title">{title}</div>
           <div className="header-actions"></div>
         </div>
-        <div className="surface-card" style={{ width: '100%', height: 'calc(100% - 52px)', overflow: 'hidden' }}>
+        <div
+          className="surface-card fx-fade-in"
+          style={{ width: '100%', height: 'calc(100% - 52px)', overflow: 'hidden' }}
+        >
           <Outlet context={{ setNavFocus }} />
         </div>
       </main>
