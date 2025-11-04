@@ -11,6 +11,8 @@
 
 Run locally:
 - Create a .env (optional) from .env.example if you need to customize PORT/HOST. See tv_frontend/.env.example.
+- Do NOT pass extra flags after `npm run dev`; use environment variables instead. Example:
+  - PORT=3000 HOST=0.0.0.0 npm run dev
 - npm install
 - npm run dev (binds 0.0.0.0:3000 with strictPort)
 - Or: npm run dev:stable (same as above)

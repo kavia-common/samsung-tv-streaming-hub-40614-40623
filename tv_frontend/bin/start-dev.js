@@ -42,8 +42,10 @@ try {
  * Important: do NOT forward these to vite; our launcher controls host/port and strictPort explicitly.
  */
 const extraArgs = process.argv.slice(2)
+// Important: Do not accept or forward extra CLI args to keep protections active.
 if (extraArgs.length > 0) {
-  console.log('[start-dev] Warning: Extra CLI flags passed to dev are ignored. Use env PORT/HOST instead.')
+  console.log('[start-dev] Warning: Extra CLI flags passed to dev are ignored. Use env PORT/HOST instead (see .env.example).')
+  console.log('[start-dev] Ignored args:', JSON.stringify(extraArgs))
 }
 
 /**
