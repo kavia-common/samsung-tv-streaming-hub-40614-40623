@@ -15,11 +15,20 @@ export default defineConfig(({ mode }) => {
       host: true, // 0.0.0.0
       port,
       strictPort: true, // fail instead of changing ports
+      // Centralize host allowance here; extend this array as needed for your environment.
+      allowedHosts: [
+        'localhost',
+        '127.0.0.1',
+      ],
     },
     preview: {
       host: true,
       port,
       strictPort: true,
+      allowedHosts: [
+        'localhost',
+        '127.0.0.1',
+      ],
     },
   }
 })
