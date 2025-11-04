@@ -1,0 +1,4 @@
+{
+    "command": "npm install && npm run build",
+    "working_directory": "/home/kavia/workspace/code-generation/samsung-tv-streaming-hub-40614-40623/tv_frontend"
+}
