@@ -35,6 +35,10 @@ export default defineConfig(({ mode }) => {
     './post_process_status.lock',
     '**/vite.config.*',
     '**/index.html',
+    // package manager lockfiles
+    '**/package-lock.json',
+    '**/pnpm-lock.yaml',
+    '**/yarn.lock',
   ]
 
   return {
@@ -47,7 +51,8 @@ export default defineConfig(({ mode }) => {
       open: false,
 
       // Explicit allow-list to prevent host header rejections
-      allowedHosts: ['localhost', 'vscode-internal-12320-qa.qa01.cloud.kavia.ai', '0.0.0.0'],
+      // Include localhost, 127.0.0.1 and 0.0.0.0 for container/CI use; keep workspace host if present
+      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'vscode-internal-12320-qa.qa01.cloud.kavia.ai'],
 
       // Stable HMR in containerized environments
       hmr: {

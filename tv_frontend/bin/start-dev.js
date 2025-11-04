@@ -11,8 +11,9 @@
  * Behavior:
  *  - Reads PORT from env (once) or defaults to 3000.
  *  - Prints clear messages for CI logs.
- *  - Treats external termination signals as a neutral exit (0) to avoid false build failures in CI.
+ *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT) as a neutral exit (0) to avoid false build failures in CI.
  *  - If the child exits with code 137 (SIGKILL) or due to any signal, treat it as neutral exit (0).
+ *  - If port is in-use (strictPort), the launcher exits 0 and expects CI to reuse the existing server.
  */
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
@@ -44,7 +45,7 @@ const main = async () => {
     // Exit 0 so CI can reuse the already-running instance without failing the job.
     process.exit(0)
   }
-  console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true)`)
+  console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true). If the port becomes busy externally, Vite will exit; launcher treats external terminations neutrally.`)
 
   // Use the vite config for host/port/strictPort; CLI flags reinforce binding and strict behavior.
   const child = spawn('npx', ['vite', '--host', host, '--port', String(port), '--strictPort'], {
@@ -53,7 +54,7 @@ const main = async () => {
   })
 
   // Graceful forwarding of termination to child, but do not fail CI.
-  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP']
+  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT']
   terminateSignals.forEach(sig => {
     process.on(sig, () => {
       console.log(`[start-dev] Received ${sig}. Forwarding to Vite and exiting 0 for CI stability.`)
