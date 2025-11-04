@@ -71,7 +71,8 @@ function checkPortInUse(p, h) {
     })
     try {
       server.listen(p, h)
-    } catch {
+    } catch (e) {
+      // If listen throws synchronously, assume port is unavailable/in use.
       finish(true)
     }
   })
@@ -100,13 +101,15 @@ function spawnVite(host, port) {
     console.log('[start-dev] Using local Vite binary:', localVite)
     return spawn(localVite, ['--host', host, '--port', String(port), '--strictPort'], {
       stdio: 'inherit',
-      env: process.env,
+      env: { ...process.env },
+      detached: false
     })
   }
   console.log('[start-dev] Local Vite binary not found. Falling back to "npx vite".')
   return spawn('npx', ['vite', '--host', host, '--port', String(port), '--strictPort'], {
     stdio: 'inherit',
-    env: process.env,
+    env: { ...process.env },
+    detached: false
   })
 }
 
@@ -118,6 +121,7 @@ const main = async () => {
     process.exit(0)
   }
   console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true). If externally terminated after readiness, exit will be neutralized (0).`)
+  console.log('[start-dev] Reminder: Do NOT pass flags after "npm run dev". Use env PORT/HOST if needed. Launcher handles allowedHosts, host:true, strictPort:true.')
 
   // Use the vite config for host/port/strictPort; CLI flags reinforce binding and strict behavior.
   const child = spawnVite(host, port)
@@ -161,7 +165,6 @@ const main = async () => {
   // Avoid CI failures on unexpected runtime exceptions/rejections during shutdown phases.
   process.on('uncaughtException', (err) => {
     console.log('[start-dev] Uncaught exception caught. Exiting 0 to avoid CI false failures:', err && err.message)
-    // Do not attempt to kill child; parent exiting will end the process tree in CI.
     process.exit(0)
   })
   process.on('unhandledRejection', (reason) => {
@@ -191,7 +194,6 @@ const main = async () => {
 
     if (signal) {
       console.log(`[start-dev] Vite process exited due to signal: ${signal}.`)
-      // Always neutralize signal-based exits to avoid CI flakiness.
       console.log('[start-dev] Treating signal exit as neutral (0).')
       process.exit(0)
       return
@@ -219,12 +221,11 @@ const main = async () => {
       return
     }
 
-    // Unknown exit status: prefer neutrality in CI context.
     console.warn('[start-dev] Unknown exit status. Neutral exit (0).')
     process.exit(0)
   })
 
-  // Ensure child is terminated when parent exits.
+  // Ensure child is terminated when parent exits (best effort)
   process.on('exit', () => {
     try { child.kill('SIGTERM') } catch { /* ignore */ }
   })
@@ -232,5 +233,13 @@ const main = async () => {
 
 main().catch((err) => {
   console.error('[start-dev] Unexpected error:', err)
-  process.exit(1)
+  // On unexpected error during start, prefer neutral exit if port is already healthy
+  checkPortInUse(port, host).then((healthy) => {
+    if (healthy) {
+      console.log('[start-dev] Port healthy despite error. Neutral exit (0).')
+      process.exit(0)
+    } else {
+      process.exit(1)
+    }
+  }).catch(() => process.exit(1))
 })

@@ -12,6 +12,7 @@
     "dev:host": "node ./bin/start-dev.js",
     "dev:ci": "node ./bin/start-dev.js",
     "start": "node ./bin/start-dev.js",
+    "dev:neutral": "node ./bin/start-dev.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
