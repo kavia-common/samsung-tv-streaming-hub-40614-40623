@@ -17,6 +17,7 @@ Run locally:
 - npm run dev (binds 0.0.0.0:3000 with strictPort)
 - Or: npm run dev:stable (same as above)
 - Access on http://localhost:3000
+- For CI: Prefer "npm run dev" or "npm run dev:ci" without appended flags; set PORT/HOST via env. The launcher will warn and ignore any extra CLI flags and still enforce neutral exits.
 
 Important usage rule:
 - Do NOT append extra Vite CLI flags after `npm run dev` (e.g., `npm run dev -- --port 3000 --host 0.0.0.0`). The stable launcher ignores such flags by design to keep protections active and will print:

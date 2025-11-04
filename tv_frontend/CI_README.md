@@ -29,6 +29,7 @@ Behavior:
 - After the server is ready (listener detected on 0.0.0.0:3000), if CI terminates the process group, the script neutralizes termination and exits 0.
 - Exit codes 130/137/143 are treated as neutral exits after readiness (or when a post-exit port check confirms a healthy listener).
 - The dev launcher does not forward signals to the child vite process in CI, preventing cascade kills that would otherwise show as exit code 137.
+- If the dev command was incorrectly invoked with extra CLI flags, the launcher still warns and ignores them, but CI tooling must not wrap the process with its own kill -9 on the parent shell. Always prefer "npm run dev" without appended flags.
 
 Health log to expect:
 - "[start-dev] Health: Vite listener detected on 0.0.0.0:3000."

@@ -139,7 +139,9 @@ const main = async () => {
     } else {
       console.warn('[start-dev] Warning: Listener not detected within 60s (not a failure). Continuing to monitor; external terminations will be neutralized.')
     }
-  })().catch(() => { /* ignore */ })
+  })().catch((e) => {
+    console.warn('[start-dev] Readiness monitor failed; proceeding with neutralization policy.', e && e.message)
+  })
 
   // Ensure neutralization on common termination signals without forwarding to child
   const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE', 'SIGUSR1', 'SIGUSR2']
