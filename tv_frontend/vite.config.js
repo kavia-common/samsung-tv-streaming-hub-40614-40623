@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       // Binding and port policy: bind to all interfaces, do not auto-increment port
+      // Note: host:true ensures 0.0.0.0 binding; strictPort:true prevents port hopping and avoids reload loops.
       host: true,
       port,
       strictPort: true,

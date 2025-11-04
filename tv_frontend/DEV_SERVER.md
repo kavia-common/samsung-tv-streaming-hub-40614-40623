@@ -18,6 +18,7 @@ CI/containers:
 - Prefer using: npm run dev or npm run dev:ci
   - Both commands use the stable launcher (bin/start-dev.js) which first checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
+  - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 137/143) as neutral exits (0) to avoid false build failures.
 
 Reuse existing dev server on port 3000:
 - If `npm run dev` outputs `Error: Port 3000 is already in use`, it means another healthy instance is already running and serving at http://localhost:3000.
@@ -45,3 +46,6 @@ Notes:
 - If you still observe a restart mentioning "vite.config.js changed", ensure no external process touches that file; the watcher in this repo already ignores it.
 - The dev server intentionally ignores changes to `.env`, `.env.*`, `index.html`, `vite.config.*`, and `post_process_status.lock` to prevent reload loops. Do not programmatically touch these files while dev server runs.
 - Lockfiles and node_modules are excluded from watch; do not run package installs while the dev server is live if you want to avoid a transient restart.
+
+Tip:
+- The launcher disables raw stdin mode if available to avoid hanging for "press h + enter" prompts in CI logs.
