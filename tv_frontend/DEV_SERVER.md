@@ -10,7 +10,8 @@
 
 Run locally:
 - npm install
-- npm run dev
+- npm run dev (binds 0.0.0.0:3000 with strictPort)
+- Or: npm run dev:stable (same as above)
 - Access on http://localhost:3000
 
 CI/containers:

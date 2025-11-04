@@ -28,7 +28,9 @@ export default defineConfig(({ mode }) => {
   const ignoredGlobs = [
     '**/.env',
     '**/.env.*',
+    // lock indicator files sometimes touched by external processes
     '**/post_process_status.lock',
+    './post_process_status.lock',
     '**/vite.config.*',
     '**/index.html',
   ]
