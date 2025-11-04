@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 /**
+ * PUBLIC_INTERFACE
  * Vite config hardened for CI/containers:
  * - Node 18 compatible (Vite 5)
  * - host: true (binds 0.0.0.0)

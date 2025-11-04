@@ -1,4 +1,4 @@
-# Dev server behavior
+# Dev server behavior (PUBLIC_INTERFACE)
 
 - Vite is configured to:
   - Bind to 0.0.0.0 (host: true)
@@ -7,6 +7,7 @@
   - Ignore changes to `.env`, `.env.*`, `post_process_status.lock`, `vite.config.*`, and `index.html` during dev to prevent rapid restart loops
   - Restrict file system access (fs.strict) to avoid watching unexpected paths
   - Extra stability: watch.awaitWriteFinish and ignoring lockfiles/node_modules to avoid thrashing or noisy file touches
+  - allowedHosts includes localhost, 127.0.0.1, 0.0.0.0 and optional HOST from env
 
 Run locally:
 - npm install
@@ -50,3 +51,4 @@ Notes:
 
 Tip:
 - The launcher disables raw stdin mode if available to avoid hanging for "press h + enter" prompts in CI logs.
+- Health log line to expect: "[start-dev] Health: Vite listener detected on 0.0.0.0:3000."
