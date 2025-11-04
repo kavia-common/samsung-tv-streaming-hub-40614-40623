@@ -131,7 +131,7 @@ const main = async () => {
       ready = true
       console.log(`[start-dev] Health: Vite listener detected on ${bindHost}:${port}.`)
     } else {
-      console.warn('[start-dev] Warning: Vite listener not detected within 60s. Continuing to monitor exit conditions.')
+      console.warn('[start-dev] Warning: Listener not detected within 60s (not a failure). Continuing to monitor; external terminations will be neutralized.')
     }
   })().catch(() => { /* ignore */ })
 

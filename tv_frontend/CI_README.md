@@ -38,3 +38,15 @@ Usage examples:
 - npm run dev:ci
 - PORT=3000 npm run dev:ci
 - HOST=localhost npm run dev:ci
+
+Troubleshooting exit code 137 (SIGKILL) in CI:
+- Symptom: CI shows "Process exited with code 137" even though Vite logged readiness.
+- Root cause: Running with extra CLI flags or directly invoking vite can bypass the stable launcher, so the termination is reported as failure.
+- Fix:
+  1) Ensure you are using: npm run dev (or npm run dev:ci)
+  2) Pass host/port via env, not flags: PORT=3000 HOST=0.0.0.0 npm run dev
+  3) Do not append flags after npm run dev. If you do, the launcher will ignore them and warn, but CI may still be killing a mis-invoked process group.
+- Expected behavior when fixed:
+  - When CI ends the step after readiness, logs will show:
+    "[start-dev] Proactive neutralization: readiness/port healthy. Exiting 0."
+  - The CI job should pass with status 0 despite termination.

@@ -7,6 +7,7 @@
     "node": ">=18"
   },
   "scripts": {
+    "// dev-note": "Always invoke dev via the stable launcher; do NOT call vite directly in CI or append extra flags.",
     "dev": "node ./bin/start-dev.js",
     "dev:stable": "node ./bin/start-dev.js",
     "dev:host": "node ./bin/start-dev.js",

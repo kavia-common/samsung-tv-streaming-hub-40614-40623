@@ -10,6 +10,7 @@
   - allowedHosts includes localhost, 127.0.0.1, 0.0.0.0 and optional HOST from env
 
 Run locally:
+- Create a .env (optional) from .env.example if you need to customize PORT/HOST.
 - npm install
 - npm run dev (binds 0.0.0.0:3000 with strictPort)
 - Or: npm run dev:stable (same as above)
