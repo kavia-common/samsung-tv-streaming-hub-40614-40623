@@ -14,6 +14,10 @@ Local development
 - Dev server runs on port 3000 by default.
 - If you upgrade your Node to >=20.19, you can consider upgrading Vite to 7+ later.
 
+Dev server stability
+- The Vite dev server is configured to ignore changes to `.env`, `.env.*`, `vite.config.*`, and `post_process_status.lock` during `npm run dev`. This prevents rapid restart loops in CI/containers when external processes touch these files.
+- Do not run any script that modifies `.env` while the dev server is running.
+
 Upgrading later
 - When moving to Node >=20.19, update devDependencies in package.json:
   - vite to ^7 (or later)
