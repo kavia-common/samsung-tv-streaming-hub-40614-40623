@@ -11,30 +11,49 @@
  * Behavior:
  *  - Reads PORT from env (once) or defaults to 3000.
  *  - Prints clear messages for CI logs.
- *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT) as a neutral exit (0) to avoid false build failures in CI.
+ *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT/SIGPIPE) as a neutral exit (0) to avoid false build failures in CI.
  *  - If the child exits with code 137 (SIGKILL) or due to any signal, treat it as neutral exit (0).
  *  - If port is in-use (strictPort), the launcher exits 0 and expects CI to reuse the existing server.
  */
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 const port = Number(process.env.PORT || 3000)
 const host = '0.0.0.0'
 
 function checkPortInUse(p, h) {
-  return new Promise((resolve) => {
+  return new Promise((resolveInUse) => {
     const server = createServer()
     server.once('error', (err) => {
       if (err && (err.code === 'EADDRINUSE' || err.code === 'EACCES')) {
-        resolve(true)
+        resolveInUse(true)
       } else {
-        resolve(false)
+        resolveInUse(false)
       }
     })
     server.once('listening', () => {
-      server.close(() => resolve(false))
+      server.close(() => resolveInUse(false))
     })
     server.listen(p, h)
+  })
+}
+
+function spawnVite(host, port) {
+  // Prefer local vite binary if available; fallback to npx
+  const localVite = resolve(process.cwd(), 'node_modules', '.bin', 'vite')
+  if (existsSync(localVite)) {
+    console.log('[start-dev] Using local Vite binary:', localVite)
+    return spawn(localVite, ['--host', host, '--port', String(port), '--strictPort'], {
+      stdio: 'inherit',
+      env: process.env,
+    })
+  }
+  console.log('[start-dev] Local Vite binary not found. Falling back to "npx vite".')
+  return spawn('npx', ['vite', '--host', host, '--port', String(port), '--strictPort'], {
+    stdio: 'inherit',
+    env: process.env,
   })
 }
 
@@ -48,13 +67,10 @@ const main = async () => {
   console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true). If the port becomes busy externally, Vite will exit; launcher treats external terminations neutrally.`)
 
   // Use the vite config for host/port/strictPort; CLI flags reinforce binding and strict behavior.
-  const child = spawn('npx', ['vite', '--host', host, '--port', String(port), '--strictPort'], {
-    stdio: 'inherit',
-    env: process.env,
-  })
+  const child = spawnVite(host, port)
 
   // Graceful forwarding of termination to child, but do not fail CI.
-  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT']
+  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE']
   terminateSignals.forEach(sig => {
     process.on(sig, () => {
       console.log(`[start-dev] Received ${sig}. Forwarding to Vite and exiting 0 for CI stability.`)
@@ -64,7 +80,7 @@ const main = async () => {
     })
   })
 
-  // If parent receives SIGPIPE or uncaughtException, avoid failing the job spuriously.
+  // If parent receives uncaughtException, avoid failing the job spuriously.
   process.on('uncaughtException', (err) => {
     console.log('[start-dev] Uncaught exception, treating as neutral exit (0):', err && err.message)
     try { child.kill('SIGTERM') } catch { /* ignore */ }
@@ -93,6 +109,11 @@ const main = async () => {
     } else {
       process.exit(1)
     }
+  })
+
+  // If parent is exiting for any reason, attempt to terminate child to prevent orphan.
+  process.on('exit', () => {
+    try { child.kill('SIGTERM') } catch { /* ignore */ }
   })
 }
 

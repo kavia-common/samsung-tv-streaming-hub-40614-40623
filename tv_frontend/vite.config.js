@@ -39,6 +39,11 @@ export default defineConfig(({ mode }) => {
     '**/package-lock.json',
     '**/pnpm-lock.yaml',
     '**/yarn.lock',
+    // common transient files that can trigger noisy restarts
+    '**/*.swp',
+    '**/*.tmp',
+    '**/*.tmp.*',
+    '**/.DS_Store',
   ]
 
   return {
