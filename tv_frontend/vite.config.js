@@ -76,12 +76,14 @@ export default defineConfig(({ mode }) => {
       // Explicit allow-list to prevent host header rejections
       // Include localhost, 127.0.0.1 and 0.0.0.0 for container/CI use; keep workspace host if present
       // Allow standard local/container hosts and optionally a HOST provided via env for CI environments
-      allowedHosts: [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-        env?.HOST || undefined,
-      ].filter(Boolean),
+      allowedHosts: Array.from(new Set(
+        [
+          'localhost',
+          '127.0.0.1',
+          '0.0.0.0',
+          (env?.HOST || '').trim(),
+        ].filter(Boolean)
+      )),
 
       // Stable HMR in containerized environments
       hmr: {

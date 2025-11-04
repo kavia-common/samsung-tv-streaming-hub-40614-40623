@@ -40,6 +40,12 @@ try {
   // ignore
 }
 
+// If someone called "npm run dev -- --port ... --host ...", warn and ignore extra flags to keep protections active.
+const extraArgs = process.argv.slice(2)
+if (extraArgs.length > 0) {
+  console.log('[start-dev] Warning: Extra CLI flags passed to dev are ignored. Use env PORT/HOST instead.')
+}
+
 /**
  * Try to bind to the port to see if it is already in use.
  * Returns true if something is listening on host:port.
