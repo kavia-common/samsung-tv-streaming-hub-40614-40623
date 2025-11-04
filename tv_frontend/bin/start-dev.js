@@ -12,11 +12,10 @@
  *  - Reads PORT from env (once) or defaults to 3000.
  *  - Prints clear messages for CI logs.
  *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT/SIGPIPE) as a neutral exit (0) to avoid false build failures in CI.
- *  - If the child exits with code 137 (SIGKILL), 143 (SIGTERM), or due to any signal, treat it as neutral exit (0).
- *  - This avoids false build failures when the orchestrator sends SIGINT/SIGKILL after readiness.
- *  - If port is in-use (strictPort), the launcher exits 0 and expects CI to reuse the existing server.
+ *  - If the child exits with code 137 (SIGKILL), 143 (SIGTERM), or due to any signal, treat it as neutral exit (0) if readiness was achieved or port is bound.
+ *  - Performs readiness detection by watching for the dev listener on the configured port.
  * Notes:
- *  - Some orchestrators send SIGINT then forcibly SIGKILL the shell. This script explicitly treats those paths as neutral (exit 0).
+ *  - Some orchestrators send SIGINT then forcibly SIGKILL the shell. This script explicitly treats those paths as neutral (exit 0) once ready.
  *  - A post-exit port check provides race protection: if a listener is live after vite exits, we consider it healthy and exit 0.
  */
 import { spawn } from 'node:child_process'
@@ -36,21 +35,53 @@ try {
   // ignore
 }
 
+/**
+ * Try to bind to the port to see if it is already in use.
+ * Returns true if something is listening on host:port.
+ */
 function checkPortInUse(p, h) {
   return new Promise((resolveInUse) => {
     const server = createServer()
+    let resolved = false
+    const finish = (val) => {
+      if (resolved) return
+      resolved = true
+      resolveInUse(val)
+    }
     server.once('error', (err) => {
       if (err && (err.code === 'EADDRINUSE' || err.code === 'EACCES')) {
-        resolveInUse(true)
+        finish(true)
       } else {
-        resolveInUse(false)
+        finish(false)
       }
     })
     server.once('listening', () => {
-      server.close(() => resolveInUse(false))
+      server.close(() => finish(false))
     })
-    server.listen(p, h)
+    try {
+      server.listen(p, h)
+    } catch {
+      finish(true)
+    }
   })
+}
+
+/**
+ * Wait until port becomes busy (listener present), polling with backoff up to timeoutMs.
+ * Returns true if port gets a listener within the timeout, else false.
+ */
+async function waitForReady(p, h, timeoutMs = 30000) {
+  const start = Date.now()
+  let delay = 200
+  while (Date.now() - start < timeoutMs) {
+    // eslint-disable-next-line no-await-in-loop
+    const inUse = await checkPortInUse(p, h)
+    if (inUse) return true
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise(r => setTimeout(r, delay))
+    delay = Math.min(1000, Math.floor(delay * 1.25))
+  }
+  return false
 }
 
 function spawnVite(host, port) {
@@ -77,91 +108,96 @@ const main = async () => {
     // Exit 0 so CI can reuse the already-running instance without failing the job.
     process.exit(0)
   }
-  console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true). If the port becomes busy externally, Vite will exit; launcher treats external terminations neutrally.`)
+  console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true). If the port becomes busy externally, Vite will exit; launcher treats external terminations neutrally once ready.`)
 
   // Use the vite config for host/port/strictPort; CLI flags reinforce binding and strict behavior.
   const child = spawnVite(host, port)
+
+  // Track whether we reached readiness (listener observed)
+  let ready = false
+  // Background readiness wait (does not block)
+  ;(async () => {
+    const ok = await waitForReady(port, host, 60000)
+    if (ok) {
+      ready = true
+      console.log(`[start-dev] Health: Vite listener detected on ${host}:${port}.`)
+    } else {
+      console.warn('[start-dev] Warning: Vite listener not detected within 60s. Continuing to monitor exit conditions.')
+    }
+  })().catch(() => { /* ignore */ })
 
   // Graceful forwarding of termination to child, but do not fail CI.
   const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE', 'SIGUSR1', 'SIGUSR2']
   terminateSignals.forEach(sig => {
     process.on(sig, () => {
-      console.log(`[start-dev] Received ${sig}. Forwarding to Vite and exiting 0 for CI stability.`)
+      console.log(`[start-dev] Received ${sig}. Forwarding to Vite.`)
       try { child.kill(sig) } catch { /* ignore */ }
-      // Give child a moment to stop, then exit 0
-      setTimeout(() => process.exit(0), 100)
+      // Do not exit immediately; let 'exit' handler decide based on readiness/port state.
     })
   })
 
   // If parent receives uncaughtException, avoid failing the job spuriously.
   process.on('uncaughtException', (err) => {
-    console.log('[start-dev] Uncaught exception, treating as neutral exit (0):', err && err.message)
+    console.log('[start-dev] Uncaught exception, treating as neutral exit (0) if ready:', err && err.message)
     try { child.kill('SIGTERM') } catch { /* ignore */ }
-    setTimeout(() => process.exit(0), 50)
   })
 
   // Also guard against unhandled rejections by exiting 0 to avoid CI failures on external kills.
   process.on('unhandledRejection', (reason) => {
-    console.log('[start-dev] Unhandled promise rejection, treating as neutral exit (0):', reason && (reason.message || String(reason)))
+    console.log('[start-dev] Unhandled promise rejection, treating as neutral exit (0) if ready:', reason && (reason.message || String(reason)))
     try { child.kill('SIGTERM') } catch { /* ignore */ }
-    setTimeout(() => process.exit(0), 50)
   })
 
-  // Optional lightweight health check: if the child is running, periodically verify port binding; do not spam logs
-  let healthLogged = false
-  const healthTimer = setInterval(async () => {
+  child.on('exit', async (code, signal) => {
+    // After vite exit, re-check listener: if still bound, consider ready/healthy.
+    let portHealthy = false
     try {
-      const nowInUse = await checkPortInUse(port, host)
-      if (nowInUse && !healthLogged) {
-        console.log(`[start-dev] Health: Vite listener detected on ${host}:${port}.`)
-        healthLogged = true
-      }
+      portHealthy = await checkPortInUse(port, host)
     } catch {
-      // ignore
+      portHealthy = false
     }
-  }, 5000)
 
-  child.on('exit', (code, signal) => {
-    clearInterval(healthTimer)
-    // External kills (e.g., SIGKILL -> 137) should not be treated as a failure for this launcher.
     if (signal) {
-      console.log(`[start-dev] Vite process exited due to signal: ${signal}. Treating as neutral exit (0).`)
-      process.exit(0)
+      console.log(`[start-dev] Vite process exited due to signal: ${signal}.`)
+      if (ready || portHealthy) {
+        console.log('[start-dev] Readiness confirmed or listener present. Treating as neutral exit (0).')
+        process.exit(0)
+      }
+      console.error('[start-dev] Dev server was not ready and no listener found. Exiting 1.')
+      process.exit(1)
       return
     }
-    // If vite exited cleanly (0), bubble 0; otherwise return 1 except for OOM/kill-like codes.
+
     if (typeof code === 'number') {
       if (code === 0) {
         process.exit(0)
-      } else if (code === 137 || code === 143) {
-        // 137: SIGKILL; 143: SIGTERM; treat as neutral
-        console.log(`[start-dev] Vite exited with external termination code ${code}. Treating as neutral exit (0).`)
-        process.exit(0)
-      } else {
-        // If vite failed to bind due to strictPort and race, consider port check again and exit neutral if now bound.
-        checkPortInUse(port, host).then((nowInUse) => {
-          if (nowInUse) {
-            console.log('[start-dev] Post-exit port check detected a listener on port', port, '- treating as healthy and exiting 0.')
-            process.exit(0)
-          } else {
-            console.error(`[start-dev] Vite exited with code ${code}.`)
-            process.exit(1)
-          }
-        }).catch(() => {
-          console.error(`[start-dev] Vite exited with code ${code}.`)
-          process.exit(1)
-        })
       }
-    } else {
-      // Unknown code type; be conservative but try neutral if port is bound.
-      checkPortInUse(port, host).then((nowInUse) => {
-        if (nowInUse) {
-          console.log('[start-dev] Unknown exit code, but listener present on port', port, '- exiting 0.')
+      if (code === 137 || code === 143) {
+        if (ready || portHealthy) {
+          console.log(`[start-dev] External termination code ${code} after readiness. Neutral exit (0).`)
           process.exit(0)
         } else {
+          console.error(`[start-dev] External termination code ${code} before readiness; no listener found. Exiting 1.`)
           process.exit(1)
         }
-      }).catch(() => process.exit(1))
+        return
+      }
+      if (portHealthy) {
+        console.log('[start-dev] Post-exit port check detected a listener - treating as healthy and exiting 0.')
+        process.exit(0)
+      }
+      console.error(`[start-dev] Vite exited with code ${code}.`)
+      process.exit(1)
+      return
+    }
+
+    // Unknown exit code type
+    if (portHealthy) {
+      console.log('[start-dev] Unknown exit code, but listener present - exiting 0.')
+      process.exit(0)
+    } else {
+      console.error('[start-dev] Unknown exit code and no listener found - exiting 1.')
+      process.exit(1)
     }
   })
 

@@ -19,7 +19,7 @@ Dev server stability
 - File system access is restricted (fs.strict) and chokidar ignore globs are applied via server.watch.ignored. Lockfiles and `node_modules` are also ignored.
 - Chokidar `awaitWriteFinish` is enabled to smooth out bursty writes and avoid thrashing.
 - Do not run any script that modifies `.env`, `vite.config.js`, or `index.html` while the dev server is running.
-- CI neutral exits: the dev launcher (bin/start-dev.js) treats external terminations as success (exit 0) including signals and codes like 137 (SIGKILL) and 143 (SIGTERM). This avoids false build failures when orchestrators stop processes after readiness or send SIGINT/SIGKILL.
+- CI neutral exits: the dev launcher (bin/start-dev.js) treats external terminations as success (exit 0) including signals and codes like 137 (SIGKILL) and 143 (SIGTERM) once readiness is confirmed (listener observed) or when a post-exit port check shows the listener is healthy. This avoids false build failures when orchestrators stop processes after readiness or send SIGINT/SIGKILL.
 - Scripts: `npm run dev`, `npm run dev:ci`, and `npm run dev:stable` all use the stable launcher. Prefer these over calling `vite` directly in CI.
 
 Port/strictPort behavior and collision handling
