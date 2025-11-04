@@ -28,17 +28,29 @@ export default defineConfig(({ mode }) => {
 
   // Files to ignore to prevent reload loops from external touches
   const ignoredGlobs = [
+    // env files
     '**/.env',
     '**/.env.*',
+    '.env',
+    '.env.*',
     // lock indicator files sometimes touched by external processes
     '**/post_process_status.lock',
     './post_process_status.lock',
+    'post_process_status.lock',
+    // config and html that should not trigger dev reload loops
     '**/vite.config.*',
+    './vite.config.*',
+    'vite.config.*',
     '**/index.html',
+    './index.html',
+    'index.html',
     // package manager lockfiles
     '**/package-lock.json',
     '**/pnpm-lock.yaml',
     '**/yarn.lock',
+    'package-lock.json',
+    'pnpm-lock.yaml',
+    'yarn.lock',
     // common transient files that can trigger noisy restarts
     '**/*.swp',
     '**/*.tmp',
@@ -58,7 +70,13 @@ export default defineConfig(({ mode }) => {
 
       // Explicit allow-list to prevent host header rejections
       // Include localhost, 127.0.0.1 and 0.0.0.0 for container/CI use; keep workspace host if present
-      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'vscode-internal-12320-qa.qa01.cloud.kavia.ai'],
+      // Allow standard local/container hosts and optionally a HOST provided via env for CI environments
+      allowedHosts: [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        env?.HOST || undefined,
+      ].filter(Boolean),
 
       // Stable HMR in containerized environments
       hmr: {

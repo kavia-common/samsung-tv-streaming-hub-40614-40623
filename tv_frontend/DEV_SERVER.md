@@ -16,6 +16,7 @@ Run locally:
 
 CI/containers:
 - Prefer using: npm run dev or npm run dev:ci
+  - If your CI environment exposes a custom hostname, set HOST=<your-host> in the environment before starting to allow it via allowedHosts.
   - Both commands use the stable launcher (bin/start-dev.js) which first checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
   - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 137/143) as neutral exits (0) to avoid false build failures.

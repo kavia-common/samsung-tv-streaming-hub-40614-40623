@@ -79,7 +79,7 @@ const main = async () => {
   const child = spawnVite(host, port)
 
   // Graceful forwarding of termination to child, but do not fail CI.
-  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE']
+  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE', 'SIGUSR1', 'SIGUSR2']
   terminateSignals.forEach(sig => {
     process.on(sig, () => {
       console.log(`[start-dev] Received ${sig}. Forwarding to Vite and exiting 0 for CI stability.`)
@@ -103,7 +103,22 @@ const main = async () => {
     setTimeout(() => process.exit(0), 50)
   })
 
+  // Optional lightweight health check: if the child is running, periodically verify port binding; do not spam logs
+  let healthLogged = false
+  const healthTimer = setInterval(async () => {
+    try {
+      const nowInUse = await checkPortInUse(port, host)
+      if (nowInUse && !healthLogged) {
+        console.log(`[start-dev] Health: Vite listener detected on ${host}:${port}.`)
+        healthLogged = true
+      }
+    } catch {
+      // ignore
+    }
+  }, 5000)
+
   child.on('exit', (code, signal) => {
+    clearInterval(healthTimer)
     // External kills (e.g., SIGKILL -> 137) should not be treated as a failure for this launcher.
     if (signal) {
       console.log(`[start-dev] Vite process exited due to signal: ${signal}. Treating as neutral exit (0).`)
