@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
-import { dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 
 /**
  * Vite config tuned for CI/containers:
@@ -15,6 +15,7 @@ import { dirname } from 'node:path'
  * - Use fs.strict/watch.ignored to avoid restarts when external processes touch files like vite.config.js or .env.
  * - Ensure allowedHosts includes 0.0.0.0 and common local hosts.
  * - Set HMR clientPort/host to keep hot updates stable behind proxies/containers.
+ * - Disable polling to avoid noisy reloads in CI where fs events work (usePolling: false).
  */
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -75,12 +76,14 @@ export default defineConfig(({ mode }) => {
           stabilityThreshold: 250,
           pollInterval: 100,
         },
+        usePolling: false,
       },
 
-      // Restrict file system access to the project root
+      // Restrict file system access strictly to this container root
       fs: {
         strict: true,
         allow: [root],
+        deny: ['..', resolve(root, '..')],
       },
 
       // Ensure we are not running middleware mode in CI
