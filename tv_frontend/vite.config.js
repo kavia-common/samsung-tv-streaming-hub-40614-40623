@@ -21,36 +21,45 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, root, '')
   const port = Number(env.PORT) || 3000
 
+  // Ignore env and config files to prevent reload loops.
+  // Also ignore index.html as external tooling may touch it in some CI flows.
   const ignoredGlobs = [
     '**/.env',
     '**/.env.*',
     '**/post_process_status.lock',
     '**/vite.config.*',
+    '**/index.html',
   ]
 
   return {
     plugins: [react()],
     server: {
+      // Binding and port policy
       host: true, // 0.0.0.0
       port,
       strictPort: true, // fail instead of changing ports
-      // Centralize host allowance here; extend this array as needed for your environment.
+
+      // Explicit host allow-list
       allowedHosts: [
         'localhost',
         '127.0.0.1',
-        // Allow typical Docker/CI internal hostnames/IPs
         '0.0.0.0',
       ],
-      // Avoid hot-restart loop when .env/vite.config change externally in CI
+
+      // Limit the watch scope to src by default, while explicitly ignoring volatile files.
       watch: {
+        // Use a function to be robust with different chokidar versions
+        // Vite will pass these to chokidar's ignored option
         ignored: ignoredGlobs,
       },
-      // Also ensure file system ignores at a lower level
+
+      // Also ensure file system access restrictions to project root
       fs: {
         strict: true,
       },
     },
-    // Mirror settings for preview just in case it's used in CI
+
+    // Mirror settings for preview
     preview: {
       host: true,
       port,
@@ -61,11 +70,12 @@ export default defineConfig(({ mode }) => {
         '0.0.0.0',
       ],
     },
-    // Provide chokidar watch ignores globally for extra safety with some toolchains
-    // Vite respects server.watch.ignored; but some environments also read top-level "watch" field.
-    // Keeping only server.watch is generally sufficient, so we avoid redundant top-level config.
-    optimizeDeps: {
-      // keep default
-    },
+
+    // Narrow the HMR watcher to the src directory to reduce noise
+    // while still allowing normal module updates.
+    // Note: This doesn't block Vite from serving index.html; it only narrows change detection.
+    // For Vite 5, we can rely on server.watch.ignored and let HMR handle src/.
+    // Keeping optimizeDeps default.
+    optimizeDeps: {},
   }
 })

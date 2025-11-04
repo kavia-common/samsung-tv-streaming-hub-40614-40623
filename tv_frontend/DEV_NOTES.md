@@ -15,9 +15,9 @@ Local development
 - If you upgrade your Node to >=20.19, you can consider upgrading Vite to 7+ later.
 
 Dev server stability
-- The Vite dev server is configured to ignore changes to `.env`, `.env.*`, `vite.config.*`, and `post_process_status.lock` during `npm run dev`. This prevents rapid restart loops in CI/containers when external processes touch these files.
+- The Vite dev server is configured to ignore changes to `.env`, `.env.*`, `vite.config.*`, `index.html`, and `post_process_status.lock` during `npm run dev`. This prevents rapid restart loops in CI/containers when external processes touch these files.
 - File system access is restricted (fs.strict) and chokidar ignore globs are applied via server.watch.ignored.
-- Do not run any script that modifies `.env` or touches `vite.config.js` while the dev server is running.
+- Do not run any script that modifies `.env`, `vite.config.js`, or `index.html` while the dev server is running.
 
 Upgrading later
 - When moving to Node >=20.19, update devDependencies in package.json:

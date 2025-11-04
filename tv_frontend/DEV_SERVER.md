@@ -4,7 +4,7 @@
   - Bind to 0.0.0.0 (host: true)
   - Use PORT from `.env` if provided, else 3000
   - Enforce strictPort so it does not change ports automatically
-  - Ignore changes to `.env`, `.env.*`, `post_process_status.lock`, and `vite.config.*` during dev to prevent rapid restart loops
+  - Ignore changes to `.env`, `.env.*`, `post_process_status.lock`, `vite.config.*`, and `index.html` during dev to prevent rapid restart loops
   - Restrict file system access (fs.strict) to avoid watching unexpected paths
 
 Run locally:
@@ -13,6 +13,6 @@ Run locally:
 - Access on http://localhost:3000
 
 Notes:
-- Do not run any script or watcher that writes to `.env` or `vite.config.*` during `npm run dev`. This will cause unnecessary restarts or instability.
+- Do not run any script or watcher that writes to `.env`, `vite.config.*`, or `index.html` during `npm run dev`. This will cause unnecessary restarts or instability.
 - For containers/CI, port is locked to 3000 and will not auto-increment.
 - If you still observe a restart mentioning "vite.config.js changed", ensure no external process touches that file; the watcher in this repo already ignores it.
