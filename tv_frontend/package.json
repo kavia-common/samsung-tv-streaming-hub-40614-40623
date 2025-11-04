@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:ci": "node ./bin/start-dev.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
