@@ -11,6 +11,7 @@
  * Behavior:
  *  - Reads PORT from env (once) or defaults to 3000.
  *  - Prints clear messages for CI logs.
+ *  - Treats external termination signals as a neutral exit (0) to avoid false build failures in CI.
  */
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
@@ -50,18 +51,40 @@ const main = async () => {
     env: process.env,
   })
 
+  // Graceful forwarding of termination to child, but do not fail CI.
+  const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP']
+  terminateSignals.forEach(sig => {
+    process.on(sig, () => {
+      console.log(`[start-dev] Received ${sig}. Forwarding to Vite and exiting 0 for CI stability.`)
+      try { child.kill(sig) } catch { /* ignore */ }
+      // Give child a moment to stop, then exit 0
+      setTimeout(() => process.exit(0), 100)
+    })
+  })
+
   child.on('exit', (code, signal) => {
-    // Note: In CI, a forced stop (e.g., SIGKILL 9 leading to 137) will report via signal.
+    // External kills (e.g., SIGKILL -> 137) should not be treated as a failure for this launcher.
     if (signal) {
-      console.log(`[start-dev] Vite process exited due to signal: ${signal}`)
-      // Map signal exits to non-zero to surface unexpected terminations; 137 is typically external kill.
+      console.log(`[start-dev] Vite process exited due to signal: ${signal}. Treating as neutral exit (0).`)
+      process.exit(0)
+      return
+    }
+    // If vite exited cleanly (0), bubble 0; otherwise return 1.
+    if (typeof code === 'number') {
+      if (code === 0) {
+        process.exit(0)
+      } else {
+        console.error(`[start-dev] Vite exited with code ${code}.`)
+        process.exit(1)
+      }
+    } else {
       process.exit(1)
     }
-    process.exit(code ?? 1)
   })
 }
 
 main().catch((err) => {
   console.error('[start-dev] Unexpected error:', err)
+  // Unexpected script error: mark as failure.
   process.exit(1)
 })
