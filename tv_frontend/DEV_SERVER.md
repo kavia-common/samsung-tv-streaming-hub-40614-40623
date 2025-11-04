@@ -13,6 +13,22 @@ Run locally:
 - npm run dev
 - Access on http://localhost:3000
 
+Reuse existing dev server on port 3000:
+- If `npm run dev` outputs `Error: Port 3000 is already in use`, it means another healthy instance is already running and serving at http://localhost:3000.
+- With `strictPort: true`, Vite will not change ports. Reuse the running instance instead of starting another.
+- To inspect the listener in the container: `ss -ltnp | grep :3000`
+- To stop it if truly needed: `kill <PID>` (gracefully), reserve `kill -9 <PID>` as last resort.
+
+Stability checklist (to avoid restarts/reloads):
+- Do not run scripts that touch:
+  - `.env`, `.env.*`
+  - `vite.config.*`
+  - `index.html`
+  - `post_process_status.lock`
+- These files are already ignored by the dev server watch to prevent loops. Avoid writing to them while dev server is running to keep hot reloads stable.
+- Avoid installing/upgrading packages (lockfiles) during a running dev session; lockfiles and `node_modules` are ignored but may cause transient noise.
+- HMR is configured to use `ws` over `0.0.0.0` with clientPort 3000 for container stability.
+
 Notes:
 - Do not run any script or watcher that writes to `.env`, `vite.config.*`, or `index.html` during `npm run dev`. This will cause unnecessary restarts or instability.
 - For containers/CI, port is locked to 3000 and will not auto-increment.
