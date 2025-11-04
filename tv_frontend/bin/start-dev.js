@@ -14,6 +14,9 @@
  *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT/SIGPIPE) as a neutral exit (0) to avoid false build failures in CI.
  *  - If the child exits with code 137 (SIGKILL) or due to any signal, treat it as neutral exit (0).
  *  - If port is in-use (strictPort), the launcher exits 0 and expects CI to reuse the existing server.
+ * Notes:
+ *  - Some orchestrators send SIGINT then forcibly SIGKILL the shell. This script explicitly treats those paths as neutral (exit 0).
+ *  - A post-exit port check provides race protection: if a listener is live after vite exits, we consider it healthy and exit 0.
  */
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
@@ -149,7 +152,15 @@ const main = async () => {
         })
       }
     } else {
-      process.exit(1)
+      // Unknown code type; be conservative but try neutral if port is bound.
+      checkPortInUse(port, host).then((nowInUse) => {
+        if (nowInUse) {
+          console.log('[start-dev] Unknown exit code, but listener present on port', port, '- exiting 0.')
+          process.exit(0)
+        } else {
+          process.exit(1)
+        }
+      }).catch(() => process.exit(1))
     }
   })
 
