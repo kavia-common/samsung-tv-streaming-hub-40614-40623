@@ -14,6 +14,7 @@
  *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT/SIGPIPE) as a neutral exit (0) to avoid false build failures in CI.
  *  - If the child exits with code 137 (SIGKILL), 143 (SIGTERM), or due to any signal, treat it as neutral exit (0) if readiness was achieved or port is bound.
  *  - Performs readiness detection by watching for the dev listener on the configured port.
+ *  - Note: Some container orchestrators send Ctrl+C (SIGINT) then immediately SIGKILL the process group (exit 137). This script proactively exits 0 after readiness and considers 130/137/143 neutral to avoid CI flakiness once healthy.
  * Notes:
  *  - Some orchestrators send SIGINT then forcibly SIGKILL the shell. This script explicitly treats those paths as neutral (exit 0) once ready.
  *  - A post-exit port check provides race protection: if a listener is live after vite exits, we consider it healthy and exit 0.

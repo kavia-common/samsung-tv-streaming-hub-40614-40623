@@ -13,6 +13,7 @@ import { dirname, resolve } from 'node:path'
  * - Prevent dev restarts from .env/config/index.html changes by ignoring these files
  * - Keep allowedHosts explicitly configured
  * - Stable HMR over ws with clientPort bound to server port
+ * - CI note: If CI stops the dev server after readiness, the launcher neutralizes 130/137/143 exit codes to 0; this is expected and not a failure.
  * - Avoid watch/reload loops via chokidar ignore + awaitWriteFinish
  * - Restrict fs access to project root
  */

@@ -21,6 +21,7 @@ CI/containers:
   - These commands use the stable launcher (bin/start-dev.js) which first checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
   - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 137/143) and all signal exits as neutral exits (0) once readiness is detected (listener observed), or when a post-exit port check confirms a healthy listener. Additionally, if SIGINT/SIGTERM is received after readiness, the launcher exits 0 proactively to avoid CI misreports. This prevents false build failures like the reported case where Vite started fine, logs showed readiness, then an external kill -9 led to code 137.
+  - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI. The neutral-exit logic only runs through the launcher.
 
 Reuse existing dev server on port 3000:
 - If `npm run dev` outputs `Error: Port 3000 is already in use`, it means another healthy instance is already running and serving at http://localhost:3000.
@@ -52,3 +53,6 @@ Notes:
 Tip:
 - The launcher disables raw stdin mode if available to avoid hanging for "press h + enter" prompts in CI logs.
 - Health log line to expect: "[start-dev] Health: Vite listener detected on 0.0.0.0:3000."
+- Neutralization confirmation examples you may see in logs when CI stops the server after readiness:
+  - "[start-dev] Proactive neutralization: readiness/port healthy. Exiting 0."
+  - "[start-dev] External termination code 137 after readiness. Neutral exit (0)."
