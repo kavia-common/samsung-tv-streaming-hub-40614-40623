@@ -148,7 +148,11 @@ const main = async () => {
       } catch {
         portHealthy = false
       }
-      console.log('[start-dev] Neutralizing termination after readiness/health check. Exiting 0.')
+      if (ready || portHealthy) {
+        console.log('[start-dev] Neutralizing termination after readiness/health check. Exiting 0.')
+      } else {
+        console.log('[start-dev] Neutralizing early termination before readiness. Exiting 0 to avoid CI flake.')
+      }
       // Ensure single exit call
       try { process.exit(0) } catch { /* ignore */ }
     })

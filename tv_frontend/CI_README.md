@@ -12,7 +12,7 @@ How to start in CI/containers:
   - or npm run dev:ci
   - or npm start
 
-Do NOT run `vite` directly in CI and do NOT pass extra flags after `npm run dev` (e.g., `npm run dev -- --port ...`). These patterns bypass the launcher protections.
+Do NOT run `vite` directly in CI and do NOT pass extra flags after `npm run dev` (e.g., `npm run dev -- --port ...`). These patterns bypass the launcher protections and can cause exit 137/143 to be reported as failures.
 Never end the dev step with explicit process group kills like `kill -9 -$$`. The launcher neutralizes terminations automatically after readiness.
 
 Behavior:

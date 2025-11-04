@@ -22,7 +22,7 @@ CI/containers:
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
   - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 137/143) and all signal exits as neutral exits (0) once readiness is detected (listener observed), or when a post-exit port check confirms a healthy listener. It also never forwards signals to the child process and never performs self-kill operations.
   - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI. Do not append additional vite flags after `npm run dev` (e.g., `npm run dev -- --port ...`) as that bypasses the launcher protections. The neutral-exit logic only runs through the launcher.
-  - If your CI previously executed `npm run dev -- --port 3000 --host 0.0.0.0`, update it to just `npm run dev` (or `npm run dev:ci`). The launcher already binds host/port/strictPort and will neutralize external terminations to avoid false failures.
+  - If your CI previously executed `npm run dev -- --port 3000 --host 0.0.0.0`, update it to just `npm run dev` (or `npm run dev:ci`). The launcher already binds host/port/strictPort and will neutralize external terminations (SIGINT/SIGTERM/SIGKILL) to avoid false failures. Passing flags after npm run dev bypasses the launcher and may result in exit code 137 being treated as a failure.
 
 Reuse existing dev server on port 3000:
 - If `npm run dev` outputs `Error: Port 3000 is already in use`, it means another healthy instance is already running and serving at http://localhost:3000.

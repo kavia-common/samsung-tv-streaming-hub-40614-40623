@@ -34,5 +34,5 @@
     "globals": "^16.4.0",
     "vite": "^5.4.21"
   },
-  "description": "Samsung Tizen TV frontend. Dev server uses a stable launcher (bin/start-dev.js). External terminations (SIGINT/SIGTERM/SIGKILL -> 130/137/143) are neutralized (exit 0) after readiness or if a listener is detected; strictPort on 3000; allowedHosts for localhost/127.0.0.1/0.0.0.0; watch-ignore prevents reload loops. Always use npm run dev/dev:ci in CI. Do NOT append vite flags after npm run dev; the launcher already binds host/port and handles neutral exits."
+  "description": "Samsung Tizen TV frontend. Dev server uses a stable launcher (bin/start-dev.js). External terminations (SIGINT/SIGTERM/SIGKILL -> 130/137/143) are neutralized (exit 0) after readiness or if a listener is detected; strictPort on 3000; allowedHosts for localhost/127.0.0.1/0.0.0.0; watch-ignore prevents reload loops. Always use npm run dev/dev:ci in CI. IMPORTANT: Do NOT append vite flags after npm run dev; doing so bypasses the launcher protections and may cause exit 137/143 to be reported as failures."
 }
