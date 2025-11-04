@@ -14,7 +14,7 @@ import { dirname } from 'node:path'
  * Additionally:
  * - Use fs.strict/watch.ignored to avoid restarts when external processes touch files like vite.config.js or .env.
  * - Ensure allowedHosts includes 0.0.0.0 and common local hosts.
- * - Set HMR clientPort/host to keep hot updates stable behind proxies.
+ * - Set HMR clientPort/host to keep hot updates stable behind proxies/containers.
  */
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -52,11 +52,13 @@ export default defineConfig(({ mode }) => {
       ],
 
       // HMR stability in containerized/proxied environments
+      // Use container IP or 0.0.0.0 for host to avoid mismatch in CI;
+      // clientPort kept to actual server port to prevent random ports.
       hmr: {
-        // Keep client connecting to the same port, safer with proxies
-        host: 'localhost',
+        host: '0.0.0.0',
         clientPort: port,
         protocol: 'ws',
+        overlay: true,
       },
 
       // Limit the watch scope by ignoring volatile files.
