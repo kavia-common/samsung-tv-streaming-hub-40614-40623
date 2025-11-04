@@ -18,6 +18,9 @@ Dev server stability
 - The Vite dev server is configured to ignore changes to `.env`, `.env.*`, `vite.config.*`, `index.html`, and `post_process_status.lock` during `npm run dev`. This prevents rapid restart loops in CI/containers when external processes touch these files.
 - File system access is restricted (fs.strict) and chokidar ignore globs are applied via server.watch.ignored.
 - Do not run any script that modifies `.env`, `vite.config.js`, or `index.html` while the dev server is running.
+- strictPort behavior: Port is fixed to 3000; if the port is already in use, `npm run dev` will fail fast with "Port 3000 is already in use". This indicates another healthy instance is running on 3000. Reuse it or stop it before starting a new one.
+  - Check the listener with `lsof -i :3000 -sTCP:LISTEN -n -P` (or `ss -ltnp | grep :3000`).
+  - Stop the existing server via `kill <PID>` if you must start a fresh one.
 
 Upgrading later
 - When moving to Node >=20.19, update devDependencies in package.json:
