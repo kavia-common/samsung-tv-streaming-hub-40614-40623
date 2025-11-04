@@ -10,7 +10,7 @@
   - allowedHosts includes localhost, 127.0.0.1, 0.0.0.0 and optional HOST from env
 
 Run locally:
-- Create a .env (optional) from .env.example if you need to customize PORT/HOST. See tv_frontend/.env.example.
+- Copy .env.example to .env if you want to set defaults. See tv_frontend/.env.example.
 - Do NOT pass extra flags after `npm run dev`; use environment variables instead. Example:
   - PORT=3000 HOST=0.0.0.0 npm run dev
 - npm install
@@ -35,6 +35,12 @@ CI/containers:
   - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI.
   - Do NOT append additional Vite flags after `npm run dev`. Use env variables PORT/HOST instead. The launcher will ignore extra flags and keep protections active.
 
+Expected neutralization:
+- After readiness, any external termination (including when CI ends the step) results in:
+  - "[start-dev] Neutralizing termination after readiness/health check. Exiting 0."
+  - or "[start-dev] External termination code 137 after readiness. Neutral exit (0)."
+- No explicit `kill -9` or cascade group kills are needed and should not be used.
+
 Reuse existing dev server on port 3000:
 - If `npm run dev` outputs `Port 3000 already in use`, it means another healthy instance is already running and serving at http://localhost:3000.
 - With `strictPort: true`, Vite will not change ports. Reuse the running instance instead of starting another.
@@ -58,9 +64,6 @@ Notes:
   - To check which process is using the port inside the container: `lsof -i :3000 -sTCP:LISTEN -n -P` (or `ss -ltnp | grep :3000`)
   - If a healthy dev server is already running, simply reuse it at http://localhost:3000
   - If you need to stop the existing server, terminate it gracefully (e.g., `kill <PID>`). Avoid repeatedly starting multiple servers; strictPort prevents auto-switching ports by design.
-- If you still observe a restart mentioning "vite.config.js changed", ensure no external process touches that file; the watcher in this repo already ignores it.
-- The dev server intentionally ignores changes to `.env`, `.env.*`, `index.html`, `vite.config.*`, and `post_process_status.lock` to prevent reload loops. Do not programmatically touch these files while dev server runs.
-- Lockfiles and node_modules are excluded from watch; do not run package installs while the dev server is live if you want to avoid a transient restart.
 
 Tip:
 - The launcher disables raw stdin mode if available to avoid hanging for "press h + enter" prompts in CI logs.
