@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
         new Set(
           [
             'localhost',
-            '127.0.0.1',
+            'vscode-internal-34201-qa.qa01.cloud.kavia.ai',
             '0.0.0.0',
             envHost,
           ].filter(Boolean)

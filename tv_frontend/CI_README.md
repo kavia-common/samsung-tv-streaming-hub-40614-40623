@@ -4,7 +4,7 @@ PUBLIC_INTERFACE
 
 Purpose:
 - Ensure the dev server is started via the stable launcher that neutralizes external terminations (e.g., exit code 137/143) after readiness to avoid false build failures.
-- Bind to 0.0.0.0:3000 with strictPort and allowedHosts for localhost/127.0.0.1/0.0.0.0.
+- Bind to 0.0.0.0:3000 with strictPort and allowedHosts for localhost/127.0.0.1/0.0.0.0. Default port is 3000 unless overridden via PORT env.
 
 How to start in CI/containers:
 - Always use:

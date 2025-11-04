@@ -11,7 +11,7 @@ Why this change?
 
 Local development
 - Run: npm install && npm run dev
-- Dev server runs on port 3000 by default.
+- Dev server runs on port 3000 by default (see .env.example for PORT/HOST).
 - If you upgrade your Node to >=20.19, you can consider upgrading Vite to 7+ later.
 
 Dev server stability

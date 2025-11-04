@@ -2,7 +2,7 @@
 
 - Vite is configured to:
   - Bind to 0.0.0.0 (host: true)
-  - Use PORT from `.env` if provided, else 3000 (read once at startup)
+  - Use PORT from `.env` if provided, else 3000 (read once at startup; default is 3000)
   - Enforce strictPort so it does not change ports automatically
   - Ignore changes to `.env`, `.env.*`, `post_process_status.lock`, `vite.config.*`, and `index.html` during dev to prevent rapid restart loops
   - Restrict file system access (fs.strict) to avoid watching unexpected paths

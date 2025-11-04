@@ -16,7 +16,7 @@ Run locally:
 - Open http://localhost:3000
 
 Notes for CI and local scripts:
-- Use env variables PORT/HOST instead of passing flags after npm run dev.
+- Use env variables PORT/HOST instead of passing flags after npm run dev (see .env.example).
 - Example: PORT=3000 npm run dev
 - Do not use: npm run dev -- --port 3000 --host 0.0.0.0
 
