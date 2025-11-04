@@ -12,7 +12,8 @@ How to start in CI/containers:
   - or npm run dev:ci
   - or npm start
 
-Do NOT run `vite` directly in CI. The neutral exit logic (after readiness) is implemented by bin/start-dev.js and is only engaged when starting via the scripts above.
+Do NOT run `vite` directly in CI and do NOT pass extra flags after `npm run dev` (e.g., `npm run dev -- --port ...`). These patterns bypass the launcher protections.
+Never end the dev step with explicit process group kills like `kill -9 -$$`. The launcher neutralizes terminations automatically after readiness.
 
 Behavior:
 - If port 3000 is already in use, the script exits 0 assuming a healthy dev server is running.

@@ -20,8 +20,8 @@ CI/containers:
   - If your CI environment exposes a custom hostname, set HOST=<your-host> in the environment before starting to allow it via allowedHosts.
   - These commands use the stable launcher (bin/start-dev.js) which first checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
-  - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 137/143) and all signal exits as neutral exits (0) once readiness is detected (listener observed), or when a post-exit port check confirms a healthy listener. Additionally, if SIGINT/SIGTERM is received after readiness, the launcher exits 0 proactively to avoid CI misreports. To prevent cascade group kills from causing exit 137, the launcher does not forward SIGINT to the Vite child; it performs a health check and exits 0 directly.
-  - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI. The neutral-exit logic only runs through the launcher. If you run `vite` directly (e.g., `npm run dev -- --port 3000 --host 0.0.0.0`), you will bypass neutralization and CI may report exit code 137 as a failure.
+  - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 137/143) and all signal exits as neutral exits (0) once readiness is detected (listener observed), or when a post-exit port check confirms a healthy listener. It also never forwards signals to the child process and never performs self-kill operations.
+  - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI. Do not append additional vite flags after `npm run dev` (e.g., `npm run dev -- --port ...`) as that bypasses the launcher protections. The neutral-exit logic only runs through the launcher.
 
 Reuse existing dev server on port 3000:
 - If `npm run dev` outputs `Error: Port 3000 is already in use`, it means another healthy instance is already running and serving at http://localhost:3000.
