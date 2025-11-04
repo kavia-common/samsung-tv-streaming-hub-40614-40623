@@ -15,8 +15,8 @@ Run locally:
 - Access on http://localhost:3000
 
 CI/containers:
-- Prefer using: npm run dev:ci
-  - This script checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
+- Prefer using: npm run dev or npm run dev:ci
+  - Both commands use the stable launcher (bin/start-dev.js) which first checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
 
 Reuse existing dev server on port 3000:

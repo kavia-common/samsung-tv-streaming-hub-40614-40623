@@ -50,6 +50,7 @@ const main = async () => {
   })
 
   child.on('exit', (code, signal) => {
+    // Note: In CI, a forced stop (e.g., SIGKILL 9 leading to 137) will report via signal.
     if (signal) {
       console.log(`[start-dev] Vite process exited due to signal: ${signal}`)
       process.exit(1)
