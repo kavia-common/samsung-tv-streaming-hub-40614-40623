@@ -129,10 +129,26 @@ const main = async () => {
   // Graceful forwarding of termination to child, but do not fail CI.
   const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE', 'SIGUSR1', 'SIGUSR2']
   terminateSignals.forEach(sig => {
-    process.on(sig, () => {
+    process.on(sig, async () => {
       console.log(`[start-dev] Received ${sig}. Forwarding to Vite.`)
       try { child.kill(sig) } catch { /* ignore */ }
-      // Do not exit immediately; let 'exit' handler decide based on readiness/port state.
+
+      // If we received SIGINT or SIGTERM and we were already ready (or listener is healthy),
+      // exit 0 immediately to avoid CI misinterpreting this as a failure when the orchestrator
+      // stops the job after readiness checks.
+      if (sig === 'SIGINT' || sig === 'SIGTERM') {
+        let portHealthy = false
+        try {
+          portHealthy = await checkPortInUse(port, host)
+        } catch {
+          portHealthy = false
+        }
+        if (ready || portHealthy) {
+          console.log('[start-dev] Neutralizing termination after readiness (SIGINT/SIGTERM). Exiting 0.')
+          process.exit(0)
+        }
+      }
+      // Otherwise, let 'exit' handler decide based on readiness/port state.
     })
   })
 
