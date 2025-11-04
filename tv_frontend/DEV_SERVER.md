@@ -6,6 +6,7 @@
   - Enforce strictPort so it does not change ports automatically
   - Ignore changes to `.env`, `.env.*`, `post_process_status.lock`, `vite.config.*`, and `index.html` during dev to prevent rapid restart loops
   - Restrict file system access (fs.strict) to avoid watching unexpected paths
+  - Extra stability: watch.awaitWriteFinish and ignoring lockfiles/node_modules to avoid thrashing or noisy file touches
 
 Run locally:
 - npm install
@@ -21,3 +22,4 @@ Notes:
   - If you need to stop the existing server, terminate it gracefully (e.g., `kill <PID>`). Avoid repeatedly starting multiple servers; strictPort prevents auto-switching ports by design.
 - If you still observe a restart mentioning "vite.config.js changed", ensure no external process touches that file; the watcher in this repo already ignores it.
 - The dev server intentionally ignores changes to `.env`, `vite.config.*`, `index.html`, and `post_process_status.lock` to prevent reload loops. Do not programmatically touch these files while dev server runs.
+- Lockfiles and node_modules are excluded from watch; do not run package installs while the dev server is live if you want to avoid a transient restart.

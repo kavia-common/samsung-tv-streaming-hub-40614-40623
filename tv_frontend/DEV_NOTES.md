@@ -16,7 +16,8 @@ Local development
 
 Dev server stability
 - The Vite dev server is configured to ignore changes to `.env`, `.env.*`, `vite.config.*`, `index.html`, and `post_process_status.lock` during `npm run dev`. This prevents rapid restart loops in CI/containers when external processes touch these files.
-- File system access is restricted (fs.strict) and chokidar ignore globs are applied via server.watch.ignored.
+- File system access is restricted (fs.strict) and chokidar ignore globs are applied via server.watch.ignored. Lockfiles and `node_modules` are also ignored.
+- Chokidar `awaitWriteFinish` is enabled to smooth out bursty writes and avoid thrashing.
 - Do not run any script that modifies `.env`, `vite.config.js`, or `index.html` while the dev server is running.
 
 Port/strictPort behavior and collision handling

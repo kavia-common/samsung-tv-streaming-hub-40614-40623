@@ -62,8 +62,19 @@ export default defineConfig(({ mode }) => {
       },
 
       // Limit the watch scope by ignoring volatile files.
+      // Also apply awaitWriteFinish to prevent thrashing on rapid file writes.
       watch: {
-        ignored: ignoredGlobs,
+        ignored: [
+          ...ignoredGlobs,
+          '**/node_modules/**',
+          '**/package-lock.json',
+          '**/pnpm-lock.yaml',
+          '**/yarn.lock',
+        ],
+        awaitWriteFinish: {
+          stabilityThreshold: 250,
+          pollInterval: 100,
+        },
       },
 
       // Restrict file system access to the project root
