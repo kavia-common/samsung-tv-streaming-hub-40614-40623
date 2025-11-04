@@ -143,7 +143,8 @@ const main = async () => {
         portHealthy = false
       }
       console.log('[start-dev] Neutralizing termination after readiness/health check. Exiting 0.')
-      process.exit(0)
+      // Ensure single exit call
+      try { process.exit(0) } catch { /* ignore */ }
     })
   })
 

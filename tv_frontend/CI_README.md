@@ -19,7 +19,14 @@ Behavior:
 - If port 3000 is already in use, the script exits 0 assuming a healthy dev server is running.
 - After the server is ready (listener detected on 0.0.0.0:3000), if CI terminates the process group, the script neutralizes termination and exits 0.
 - Exit codes 130/137/143 are treated as neutral exits after readiness (or when a post-exit port check confirms a healthy listener).
+- The dev launcher does not forward signals to the child vite process in CI, preventing cascade kills that would otherwise show as exit code 137.
 
 Health log to expect:
 - "[start-dev] Health: Vite listener detected on 0.0.0.0:3000."
 - On CI termination: "[start-dev] Neutralizing termination after readiness/health check. Exiting 0."
+
+Usage examples:
+- npm run dev
+- npm run dev:ci
+- PORT=3000 npm run dev:ci
+- HOST=localhost npm run dev:ci
