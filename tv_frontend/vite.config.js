@@ -1,5 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'node:url'
+import { dirname } from 'node:path'
 
 /**
  * Vite config tuned for CI/containers:
@@ -17,7 +19,9 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // Resolve project root based on this config file, avoiding process.cwd()
-  const root = new URL('.', import.meta.url).pathname
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = dirname(__filename)
+  const root = __dirname
   const env = loadEnv(mode, root, '')
   const port = Number(env.PORT) || 3000
 
@@ -38,6 +42,7 @@ export default defineConfig(({ mode }) => {
       host: true, // 0.0.0.0
       port,
       strictPort: true, // fail instead of changing ports
+      open: false,
 
       // Explicit host allow-list
       allowedHosts: [
@@ -48,7 +53,8 @@ export default defineConfig(({ mode }) => {
 
       // HMR stability in containerized/proxied environments
       hmr: {
-        host: '0.0.0.0',
+        // Keep client connecting to the same port, safer with proxies
+        host: 'localhost',
         clientPort: port,
         protocol: 'ws',
       },
@@ -78,6 +84,7 @@ export default defineConfig(({ mode }) => {
         '127.0.0.1',
         '0.0.0.0',
       ],
+      open: false,
     },
 
     optimizeDeps: {},
