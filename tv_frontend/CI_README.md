@@ -52,3 +52,10 @@ Troubleshooting exit code 137 (SIGKILL) in CI:
   - When CI ends the step after readiness, logs will show:
     "[start-dev] Proactive neutralization: readiness/port healthy. Exiting 0."
   - The CI job should pass with status 0 despite termination.
+
+UI scroll configuration:
+- To enable scroll both horizontally and vertically, set in src/uiSettings.js:
+  - disableScroll=false
+  - allowVerticalScroll=true
+  - allowHorizontalScroll=true
+- The dev server and CSS have been adjusted to respect these settings.

@@ -70,11 +70,11 @@ export default function Home() {
   })
 
   return (
-    <div style={{ width:'100%', height:'100%', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column' }}>
       <div style={{ padding: '18px 18px 8px 18px', color: '#374151', fontWeight: 700 }}>
         Browse
       </div>
-      <div style={{ flex:1, overflow:'hidden', padding:'0 8px 12px 8px' }}>
+      <div style={{ flex:1, padding:'0 8px 12px 8px' }}>
         {rows.map((cat, rIndex) => {
           const { start, end } = visibleSliceForRow(rIndex)
           const items = cat.items.slice(start, end)

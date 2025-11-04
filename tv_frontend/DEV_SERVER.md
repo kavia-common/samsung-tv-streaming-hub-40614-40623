@@ -59,6 +59,10 @@ Stability checklist (to avoid restarts/reloads):
 - HMR is configured to use `ws` over `0.0.0.0` with clientPort 3000 for container stability.
 
 Notes:
+- Scroll behavior is configurable:
+  - In `src/uiSettings.js`, set `disableScroll=false` to allow scrolling.
+  - Use `allowVerticalScroll` and `allowHorizontalScroll` to control axes.
+  - AppShell applies the settings to document/body and primary surfaces so the UI can scroll on one or both axes.
 - Do not run any script or watcher that writes to `.env`, `vite.config.*`, or `index.html` during `npm run dev`. This will cause unnecessary restarts or instability.
 - For containers/CI, port is locked to 3000 and will not auto-increment due to `strictPort: true`.
 - If you see "Error: Port 3000 is already in use", it means another instance is already running and healthy on that port. Either reuse the running instance or stop it before starting a new one. This is expected with strictPort: true.

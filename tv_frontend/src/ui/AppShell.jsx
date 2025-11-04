@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTizenKeys } from '../hooks/useTizenKeys'
 import { useStore } from '../store.jsx'
-import { isScrollDisabled } from '../uiSettings'
+import { isScrollDisabled, scrollAxes } from '../uiSettings'
 import '../theme.css'
 
 /**
@@ -18,20 +18,28 @@ import '../theme.css'
  * - BACK navigates up: from player -> previous, from search/home -> stays or logs
  */
 
- // PUBLIC_INTERFACE
+// PUBLIC_INTERFACE
 export default function AppShell() {
   const nav = useNavigate()
   const loc = useLocation()
   const { state, setNavFocus } = useStore()
 
-  // Enforce body no-scroll if configured
+  // Apply global scroll behavior based on settings
   useEffect(() => {
-    if (isScrollDisabled()) {
+    const disable = isScrollDisabled()
+    const axes = scrollAxes()
+    if (disable) {
       document.documentElement.style.overflow = 'hidden'
       document.body.style.overflow = 'hidden'
+    } else {
+      // Allow axis-specific overflow. Default both visible when allowed.
+      document.documentElement.style.overflowX = axes.horizontal ? 'auto' : 'hidden'
+      document.documentElement.style.overflowY = axes.vertical ? 'auto' : 'hidden'
+      document.body.style.overflowX = axes.horizontal ? 'auto' : 'hidden'
+      document.body.style.overflowY = axes.vertical ? 'auto' : 'hidden'
     }
     return () => {
-      // keep hidden for the app lifetime; no-op on unmount
+      // no-op: keep overflow as configured for app lifetime
     }
   }, [])
 
@@ -57,6 +65,12 @@ export default function AppShell() {
     if (index === 1) nav('/search')
   }
 
+  const disable = isScrollDisabled()
+  const axes = scrollAxes()
+  const surfaceOverflow = disable
+    ? 'hidden'
+    : `${axes.horizontal ? 'auto' : 'hidden'} ${axes.vertical ? 'auto' : 'hidden'}`
+
   return (
     <div className="app-shell">
       <aside className="nav-rail">
@@ -79,14 +93,19 @@ export default function AppShell() {
           Search
         </button>
       </aside>
-      <main className="main-area">
+      <main className="main-area" style={{ overflow: disable ? 'hidden' : undefined }}>
         <div className="header-bar">
           <div className="header-title">{title}</div>
           <div className="header-actions"></div>
         </div>
         <div
           className="surface-card fx-fade-in"
-          style={{ width: '100%', height: 'calc(100% - 52px)', overflow: 'hidden' }}
+          style={{
+            width: '100%',
+            height: 'calc(100% - 52px)',
+            overflowX: disable ? 'hidden' : (axes.horizontal ? 'auto' : 'hidden'),
+            overflowY: disable ? 'hidden' : (axes.vertical ? 'auto' : 'hidden'),
+          }}
         >
           <Outlet context={{ setNavFocus }} />
         </div>

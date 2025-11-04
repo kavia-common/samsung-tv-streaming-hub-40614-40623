@@ -11,13 +11,12 @@
   --retro-scanline: linear-gradient(rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.03) 50%);
 }
 
-/* Fix TV-safe viewport and disable scroll globally */
+/* Fix TV-safe viewport; overflow is controlled via settings in AppShell */
 html, body, #root {
   width: 1920px;
   height: 1080px;
   margin:0;
   padding:0;
-  overflow:hidden;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: Arial, Helvetica, sans-serif;
@@ -156,7 +155,6 @@ body::after {
 .carousel-row {
   display:flex;
   gap: 14px;
-  overflow:hidden;
   will-change: transform, opacity;
   transform: translate3d(0,0,0);
 }

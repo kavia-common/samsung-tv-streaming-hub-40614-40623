@@ -111,14 +111,14 @@ export default function Search() {
   })
 
   return (
-    <div style={{ width:'100%', height:'100%', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column' }}>
       <div style={{ padding: '16px', display:'flex', gap: '12px', alignItems:'center' }}>
         <div className={'search-bar ' + (state.focus.search.zone === 'keyboard' ? 'focused' : '')}>
           <span className="search-input">{state.searchQuery || 'Type with on-screen keyboard...'}</span>
         </div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'520px 1fr', gap:'12px', padding:'0 12px 12px 12px', overflow:'hidden', flex:'1' }}>
-        <div className="surface-card" style={{ overflow:'hidden' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'520px 1fr', gap:'12px', padding:'0 12px 12px 12px', flex:'1' }}>
+        <div className="surface-card">
           <div className="keyboard">
             {keyboardRows.map((row, r) => row.map((k, c) => {
               const focused = state.focus.search.zone === 'keyboard' && state.focus.search.keyRow === r && state.focus.search.keyCol === c
