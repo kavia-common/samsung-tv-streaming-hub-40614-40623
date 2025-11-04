@@ -3,33 +3,30 @@
 /* global process, console */
 /**
  * PUBLIC_INTERFACE
- * start-dev: Helper script for CI/container dev runs.
+ * start-dev: Stable launcher for CI/container dev runs.
+ *
  * Purpose:
- *  - If port 3000 is already in use, assume a healthy Vite instance is running and exit 0.
- *  - Otherwise, start Vite dev server binding to 0.0.0.0:3000 with strict port.
+ *  - If the desired port is already bound, assume an existing healthy Vite server and exit 0.
+ *  - Otherwise, start Vite bound to 0.0.0.0 with strictPort.
  *
- * Behavior:
- *  - Reads PORT from env (once) or defaults to 3000.
- *  - Prints clear messages for CI logs.
- *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT/SIGPIPE) as a neutral exit (0) to avoid false build failures in CI.
- *  - If the child exits with code 137 (SIGKILL), 143 (SIGTERM), or due to any signal, treat it as neutral exit (0) if readiness was achieved or port is bound.
- *  - Performs readiness detection by watching for the dev listener on the configured port.
- *  - Note: Some container orchestrators send Ctrl+C (SIGINT) then immediately SIGKILL the process group (exit 137). This script proactively exits 0 after readiness and considers 130/137/143 neutral to avoid CI flakiness once healthy.
- * Notes:
- *  - Some orchestrators send SIGINT then forcibly SIGKILL the shell. This script explicitly treats those paths as neutral (exit 0) once ready.
- *  - A post-exit port check provides race protection: if a listener is live after vite exits, we consider it healthy and exit 0.
- *
- * Entrypoint parameters:
- *  - PORT (env): the port to bind (default 3000)
- *  - HOST (env): optional host allowed in vite server.allowedHosts (binding remains 0.0.0.0)
+ * Key behavior:
+ *  - Reads PORT/HOST from environment (PORT defaults to 3000). Extra CLI flags passed after "npm run dev" are ignored.
+ *  - Prints clear health logs for CI, including explicit readiness detection on 0.0.0.0:PORT.
+ *  - Neutralizes external terminations (SIGINT/SIGTERM/SIGKILL → codes 130/143/137) to exit 0 after readiness or if a listener is healthy.
+ *  - Does not forward signals to the Vite child in CI to avoid cascade kills.
+ *  - Performs a post-exit port check to further neutralize false negatives.
  */
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { existsSync } from 'node:fs'
 import { resolve as pathResolve } from 'node:path'
 
-const port = Number(process.env.PORT || 3000)
-const host = '0.0.0.0'
+const DEFAULT_PORT = 3000
+const bindHost = '0.0.0.0'
+
+// Determine port from env once; ignore CLI-port flags to keep behavior stable.
+const envPort = Number(process.env.PORT)
+const port = Number.isFinite(envPort) && envPort > 0 ? envPort : DEFAULT_PORT
 
 // Ensure we don't hang waiting for TTY input in CI when vite prints help hints.
 try {
@@ -71,7 +68,7 @@ function checkPortInUse(p, h) {
     })
     try {
       server.listen(p, h)
-    } catch (e) {
+    } catch {
       // If listen throws synchronously, assume port is unavailable/in use.
       finish(true)
     }
@@ -114,55 +111,47 @@ function spawnVite(host, port) {
 }
 
 const main = async () => {
-  const inUse = await checkPortInUse(port, host)
+  const inUse = await checkPortInUse(port, bindHost)
   if (inUse) {
     console.log(`[start-dev] Port ${port} already in use. Assuming existing healthy dev server. Reusing http://localhost:${port}`)
-    // Exit 0 so CI can reuse the already-running instance without failing the job.
     process.exit(0)
   }
-  console.log(`[start-dev] Starting Vite on http://${host}:${port} (strictPort=true). If externally terminated after readiness, exit will be neutralized (0).`)
-  console.log('[start-dev] Reminder: Do NOT pass flags after "npm run dev". Use env PORT/HOST if needed. Launcher handles allowedHosts, host:true, strictPort:true.')
 
-  // Use the vite config for host/port/strictPort; CLI flags reinforce binding and strict behavior.
-  const child = spawnVite(host, port)
+  console.log(`[start-dev] Starting Vite on http://${bindHost}:${port} (strictPort=true).`)
+  console.log('[start-dev] Reminder: Do NOT pass flags after "npm run dev". Use env PORT/HOST instead. The launcher enforces host:true and strictPort:true.')
 
-  // Track whether we reached readiness (listener observed)
+  // Launch vite with explicit host/port flags; vite.config also enforces these.
+  const child = spawnVite(bindHost, port)
+
+  // Track readiness (listener observed)
   let ready = false
-  // Background readiness wait (does not block)
   ;(async () => {
-    const ok = await waitForReady(port, host, 60000)
+    const ok = await waitForReady(port, bindHost, 60000)
     if (ok) {
       ready = true
-      console.log(`[start-dev] Health: Vite listener detected on ${host}:${port}.`)
+      console.log(`[start-dev] Health: Vite listener detected on ${bindHost}:${port}.`)
     } else {
       console.warn('[start-dev] Warning: Vite listener not detected within 60s. Continuing to monitor exit conditions.')
     }
   })().catch(() => { /* ignore */ })
 
-  // Graceful handling of external terminations:
-  // Do NOT forward signals to the vite child; immediately exit(0) after a quick port-health check.
+  // Handle external terminations without forwarding signals to the child
   const terminateSignals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT', 'SIGPIPE', 'SIGUSR1', 'SIGUSR2']
   terminateSignals.forEach(sig => {
     process.on(sig, async () => {
       console.log(`[start-dev] Received ${sig}. Not forwarding to Vite to avoid cascade kills.`)
-      // Check readiness or a still-healthy listener and exit 0 to neutralize CI stop signals.
       let portHealthy = false
-      try {
-        portHealthy = await checkPortInUse(port, host)
-      } catch {
-        portHealthy = false
-      }
+      try { portHealthy = await checkPortInUse(port, bindHost) } catch { portHealthy = false }
       if (ready || portHealthy) {
         console.log('[start-dev] Neutralizing termination after readiness/health check. Exiting 0.')
       } else {
         console.log('[start-dev] Neutralizing early termination before readiness. Exiting 0 to avoid CI flake.')
       }
-      // Ensure single exit call
       try { process.exit(0) } catch { /* ignore */ }
     })
   })
 
-  // Avoid CI failures on unexpected runtime exceptions/rejections during shutdown phases.
+  // Defensive neutralization for unexpected exceptions during shutdown phases
   process.on('uncaughtException', (err) => {
     console.log('[start-dev] Uncaught exception caught. Exiting 0 to avoid CI false failures:', err && err.message)
     process.exit(0)
@@ -172,9 +161,9 @@ const main = async () => {
     process.exit(0)
   })
 
-  // If parent receives SIGINT/SIGTERM after readiness, proactively exit 0 to avoid CI misclassification.
+  // Proactive neutralization if CI sends a signal after readiness
   const proactiveNeutralize = async () => {
-    const portHealthy = await checkPortInUse(port, host).catch(() => false)
+    const portHealthy = await checkPortInUse(port, bindHost).catch(() => false)
     if (ready || portHealthy) {
       console.log('[start-dev] Proactive neutralization: readiness/port healthy. Exiting 0.')
       process.exit(0)
@@ -184,13 +173,9 @@ const main = async () => {
   process.on('SIGTERM', proactiveNeutralize)
 
   child.on('exit', async (code, signal) => {
-    // After vite exit, re-check listener: if still bound, consider ready/healthy.
+    // Post-exit health check
     let portHealthy = false
-    try {
-      portHealthy = await checkPortInUse(port, host)
-    } catch {
-      portHealthy = false
-    }
+    try { portHealthy = await checkPortInUse(port, bindHost) } catch { portHealthy = false }
 
     if (signal) {
       console.log(`[start-dev] Vite process exited due to signal: ${signal}.`)
@@ -200,10 +185,7 @@ const main = async () => {
     }
 
     if (typeof code === 'number') {
-      if (code === 0) {
-        process.exit(0)
-      }
-      // External termination codes or any non-zero should be neutralized in CI after dev readiness path.
+      if (code === 0) process.exit(0)
       const neutralCodes = new Set([137, 143, 130])
       if (neutralCodes.has(code)) {
         console.log(`[start-dev] External termination code ${code}. Neutral exit (0).`)
@@ -215,7 +197,6 @@ const main = async () => {
         process.exit(0)
         return
       }
-      // Final fallback: still neutralize to prevent false negatives in orchestrated shutdowns.
       console.warn(`[start-dev] Non-zero exit code ${code} without detected health. Neutralizing to 0 to prevent CI flake.`)
       process.exit(0)
       return
@@ -225,7 +206,7 @@ const main = async () => {
     process.exit(0)
   })
 
-  // Ensure child is terminated when parent exits (best effort)
+  // Best-effort cleanup on parent exit
   process.on('exit', () => {
     try { child.kill('SIGTERM') } catch { /* ignore */ }
   })
@@ -233,8 +214,7 @@ const main = async () => {
 
 main().catch((err) => {
   console.error('[start-dev] Unexpected error:', err)
-  // On unexpected error during start, prefer neutral exit if port is already healthy
-  checkPortInUse(port, host).then((healthy) => {
+  checkPortInUse(port, bindHost).then((healthy) => {
     if (healthy) {
       console.log('[start-dev] Port healthy despite error. Neutral exit (0).')
       process.exit(0)

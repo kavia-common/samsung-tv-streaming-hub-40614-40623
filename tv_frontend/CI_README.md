@@ -13,7 +13,14 @@ How to start in CI/containers:
   - or npm start
   - or npm run dev:neutral (alias)
 
-Do NOT run `vite` directly in CI and do NOT pass extra flags after `npm run dev` (e.g., `npm run dev -- --port ...`). These patterns bypass the launcher protections and can cause exit 137/143 to be reported as failures.
+Important:
+- Do NOT run `vite` directly in CI.
+- Do NOT pass extra flags after `npm run dev` (e.g., `npm run dev -- --port 3000 --host 0.0.0.0`). These patterns bypass the launcher protections. If flags are passed, the launcher will ignore them and print:
+  - "[start-dev] Warning: Extra CLI flags passed to dev are ignored. Use env PORT/HOST instead."
+- Use environment variables instead:
+  - PORT=3000 npm run dev
+  - HOST=my-ci-host.internal npm run dev
+
 Never end the dev step with explicit process group kills like `kill -9 -$$`. The launcher neutralizes terminations automatically after readiness. If a dev server is already on port 3000, reuse it and exit 0.
 
 Behavior:

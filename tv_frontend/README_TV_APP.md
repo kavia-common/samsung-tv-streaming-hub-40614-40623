@@ -15,6 +15,11 @@ Run locally:
 - npm run dev
 - Open http://localhost:3000
 
+Notes for CI and local scripts:
+- Use env variables PORT/HOST instead of passing flags after npm run dev.
+- Example: PORT=3000 npm run dev
+- Do not use: npm run dev -- --port 3000 --host 0.0.0.0
+
 Remote keys:
 - LEFT/RIGHT/UP/DOWN navigate; ENTER selects; BACK goes back from Player.
 - On real Tizen device, BACK at root would exit via tizen.application APIs (omitted in dev).

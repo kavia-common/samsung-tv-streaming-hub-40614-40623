@@ -15,14 +15,22 @@ Run locally:
 - Or: npm run dev:stable (same as above)
 - Access on http://localhost:3000
 
+Important usage rule:
+- Do NOT append extra Vite CLI flags after `npm run dev` (e.g., `npm run dev -- --port 3000 --host 0.0.0.0`). The stable launcher ignores such flags by design to keep protections active and will print:
+  - "[start-dev] Warning: Extra CLI flags passed to dev are ignored. Use env PORT/HOST instead."
+- If you need to adjust host/port, use environment variables:
+  - Example: `PORT=3000 npm run dev`
+  - Example: `HOST=my-ci-host.internal npm run dev`
+- See `.env.example` for a reference of supported variables.
+
 CI/containers:
 - Prefer using: npm run dev or npm run dev:ci (and npm run dev:stable is an alias)
   - If your CI environment exposes a custom hostname, set HOST=<your-host> in the environment before starting to allow it via allowedHosts.
   - These commands use the stable launcher (bin/start-dev.js) which first checks if port 3000 is already in use and exits 0 if so, assuming the dev server is already healthy.
   - If the port is free, it starts Vite on 0.0.0.0:3000 with strictPort.
   - The launcher treats external terminations (SIGINT/SIGTERM/SIGKILL -> code 130/137/143) and all signal exits as neutral exits (0) once readiness is detected (listener observed), or when a post-exit port check confirms a healthy listener. It also never forwards signals to the child process and never performs self-kill operations.
-  - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI. Do not append additional vite flags after `npm run dev` (e.g., `npm run dev -- --port ...`) as that bypasses the launcher protections. The neutral-exit logic only runs through the launcher.
-  - If your CI previously executed `npm run dev -- --port 3000 --host 0.0.0.0`, update it to just `npm run dev` (or `npm run dev:ci`). The launcher already binds host/port/strictPort and will neutralize external terminations (SIGINT/SIGTERM/SIGKILL) to avoid false failures. Passing flags after npm run dev bypasses the launcher and may result in exit code 137 being treated as a failure.
+  - Important: Always invoke the dev server via `npm run dev`/`dev:ci`/`start` and NOT `vite` directly in CI.
+  - Do NOT append additional Vite flags after `npm run dev`. Use env variables PORT/HOST instead. The launcher will ignore extra flags and keep protections active.
 
 Reuse existing dev server on port 3000:
 - If `npm run dev` outputs `Port 3000 already in use`, it means another healthy instance is already running and serving at http://localhost:3000.
@@ -59,4 +67,5 @@ Tip:
   - "[start-dev] External termination code 137 after readiness. Neutral exit (0)."
 
 Important:
-- Do NOT run: `npm run dev -- --port 3000 --host 0.0.0.0` in CI. That bypasses the launcher protections and can surface exit 137 as a failure. Use `npm run dev` (or `npm run dev:ci`) instead.
+- Do NOT run: `npm run dev -- --port 3000 --host 0.0.0.0` in CI. That bypasses the launcher protections and can surface exit 137 as a failure.
+- Use env: `PORT=3000 HOST=localhost npm run dev`
