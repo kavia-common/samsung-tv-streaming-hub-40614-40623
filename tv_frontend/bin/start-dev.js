@@ -12,7 +12,8 @@
  *  - Reads PORT from env (once) or defaults to 3000.
  *  - Prints clear messages for CI logs.
  *  - Treats external termination signals (SIGINT/SIGTERM/SIGHUP/SIGQUIT/SIGPIPE) as a neutral exit (0) to avoid false build failures in CI.
- *  - If the child exits with code 137 (SIGKILL) or due to any signal, treat it as neutral exit (0).
+ *  - If the child exits with code 137 (SIGKILL), 143 (SIGTERM), or due to any signal, treat it as neutral exit (0).
+ *  - This avoids false build failures when the orchestrator sends SIGINT/SIGKILL after readiness.
  *  - If port is in-use (strictPort), the launcher exits 0 and expects CI to reuse the existing server.
  * Notes:
  *  - Some orchestrators send SIGINT then forcibly SIGKILL the shell. This script explicitly treats those paths as neutral (exit 0).

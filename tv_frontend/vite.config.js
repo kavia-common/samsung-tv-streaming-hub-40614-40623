@@ -26,7 +26,9 @@ export default defineConfig(({ mode }) => {
   const parsed = Number(env?.PORT)
   const port = Number.isFinite(parsed) && parsed > 0 ? parsed : 3000
 
-  // Files to ignore to prevent reload loops from external touches
+  // Files to ignore to prevent reload loops from external touches.
+  // These are intentionally ignored because some CI/container orchestrations touch them during lifecycle steps,
+  // which would otherwise cause Vite to restart or reload repeatedly.
   const ignoredGlobs = [
     // env files
     '**/.env',
