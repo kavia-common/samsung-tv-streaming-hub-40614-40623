@@ -22,7 +22,9 @@ export default defineConfig(({ mode }) => {
 
   // Never derive port from changing env while server runs; lock to 3000 unless user sets PORT before start.
   const env = loadEnv(mode, root, '')
-  const port = Number(env?.PORT || 3000)
+  // Ensure numeric port; default to 3000 if invalid to keep strictPort stable
+  const parsed = Number(env?.PORT)
+  const port = Number.isFinite(parsed) && parsed > 0 ? parsed : 3000
 
   // Files to ignore to prevent reload loops from external touches
   const ignoredGlobs = [
@@ -45,7 +47,7 @@ export default defineConfig(({ mode }) => {
       open: false,
 
       // Explicit allow-list to prevent host header rejections
-      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0'],
+      allowedHosts: ['localhost', 'vscode-internal-12320-qa.qa01.cloud.kavia.ai', '0.0.0.0'],
 
       // Stable HMR in containerized environments
       hmr: {

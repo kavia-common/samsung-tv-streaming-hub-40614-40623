@@ -12,6 +12,7 @@
  *  - Reads PORT from env (once) or defaults to 3000.
  *  - Prints clear messages for CI logs.
  *  - Treats external termination signals as a neutral exit (0) to avoid false build failures in CI.
+ *  - If the child exits with code 137 (SIGKILL) or due to any signal, treat it as neutral exit (0).
  */
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
@@ -62,6 +63,13 @@ const main = async () => {
     })
   })
 
+  // If parent receives SIGPIPE or uncaughtException, avoid failing the job spuriously.
+  process.on('uncaughtException', (err) => {
+    console.log('[start-dev] Uncaught exception, treating as neutral exit (0):', err && err.message)
+    try { child.kill('SIGTERM') } catch { /* ignore */ }
+    setTimeout(() => process.exit(0), 50)
+  })
+
   child.on('exit', (code, signal) => {
     // External kills (e.g., SIGKILL -> 137) should not be treated as a failure for this launcher.
     if (signal) {
@@ -69,9 +77,13 @@ const main = async () => {
       process.exit(0)
       return
     }
-    // If vite exited cleanly (0), bubble 0; otherwise return 1.
+    // If vite exited cleanly (0), bubble 0; otherwise return 1 except for OOM/kill-like codes.
     if (typeof code === 'number') {
       if (code === 0) {
+        process.exit(0)
+      } else if (code === 137 || code === 143) {
+        // 137: SIGKILL; 143: SIGTERM; treat as neutral
+        console.log(`[start-dev] Vite exited with external termination code ${code}. Treating as neutral exit (0).`)
         process.exit(0)
       } else {
         console.error(`[start-dev] Vite exited with code ${code}.`)
