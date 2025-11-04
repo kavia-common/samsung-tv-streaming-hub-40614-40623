@@ -4,30 +4,27 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 /**
- * Vite config tuned for CI/containers:
+ * Vite config hardened for CI/containers:
  * - Node 18 compatible (Vite 5)
  * - host: true (binds 0.0.0.0)
  * - strictPort: true on 3000
- * - Prevent dev restarts from .env/config changes by ignoring these files
- * - Do not touch/write .env at runtime anywhere in the project (no scripts should)
- *
- * Additionally:
- * - Use fs.strict/watch.ignored to avoid restarts when external processes touch files like vite.config.js or .env.
- * - Ensure allowedHosts includes 0.0.0.0 and common local hosts.
- * - Set HMR clientPort/host to keep hot updates stable behind proxies/containers.
- * - Disable polling to avoid noisy reloads in CI where fs events work (usePolling: false).
+ * - Prevent dev restarts from .env/config/index.html changes by ignoring these files
+ * - Keep allowedHosts explicitly configured
+ * - Stable HMR over ws with clientPort bound to server port
+ * - Avoid watch/reload loops via chokidar ignore + awaitWriteFinish
+ * - Restrict fs access to project root
  */
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // Resolve project root based on this config file, avoiding process.cwd()
   const __filename = fileURLToPath(import.meta.url)
   const __dirname = dirname(__filename)
   const root = __dirname
-  const env = loadEnv(mode, root, '')
-  const port = Number(env.PORT) || 3000
 
-  // Ignore env and config files to prevent reload loops.
-  // Also ignore index.html as external tooling may touch it in some CI flows.
+  // Never derive port from changing env while server runs; lock to 3000 unless user sets PORT before start.
+  const env = loadEnv(mode, root, '')
+  const port = Number(env?.PORT || 3000)
+
+  // Files to ignore to prevent reload loops from external touches
   const ignoredGlobs = [
     '**/.env',
     '**/.env.*',
@@ -39,22 +36,16 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
-      // Binding and port policy
-      host: true, // 0.0.0.0
+      // Binding and port policy: bind to all interfaces, do not auto-increment port
+      host: true,
       port,
-      strictPort: true, // fail instead of changing ports
+      strictPort: true,
       open: false,
 
-      // Explicit host allow-list
-      allowedHosts: [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-      ],
+      // Explicit allow-list to prevent host header rejections
+      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0'],
 
-      // HMR stability in containerized/proxied environments
-      // Use container IP or 0.0.0.0 for host to avoid mismatch in CI;
-      // clientPort kept to actual server port to prevent random ports.
+      // Stable HMR in containerized environments
       hmr: {
         host: '0.0.0.0',
         clientPort: port,
@@ -62,8 +53,7 @@ export default defineConfig(({ mode }) => {
         overlay: true,
       },
 
-      // Limit the watch scope by ignoring volatile files.
-      // Also apply awaitWriteFinish to prevent thrashing on rapid file writes.
+      // Watch tuning: ignore volatile files and avoid thrashing
       watch: {
         ignored: [
           ...ignoredGlobs,
@@ -73,36 +63,32 @@ export default defineConfig(({ mode }) => {
           '**/yarn.lock',
         ],
         awaitWriteFinish: {
-          stabilityThreshold: 250,
-          pollInterval: 100,
+          stabilityThreshold: 300,
+          pollInterval: 120,
         },
         usePolling: false,
       },
 
-      // Restrict file system access strictly to this container root
+      // Restrict file system access to this root only
       fs: {
         strict: true,
         allow: [root],
         deny: ['..', resolve(root, '..')],
       },
 
-      // Ensure we are not running middleware mode in CI
+      // Ensure standard dev server (not middleware) for CI
       middlewareMode: false,
     },
 
-    // Mirror settings for preview
     preview: {
       host: true,
       port,
       strictPort: true,
-      allowedHosts: [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-      ],
+      allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0'],
       open: false,
     },
 
+    // Keep default optimizer; no special includes
     optimizeDeps: {},
   }
 })

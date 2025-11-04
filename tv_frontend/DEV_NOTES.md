@@ -28,6 +28,13 @@ Port/strictPort behavior and collision handling
   - Terminate gracefully: `kill <PID>` (or `kill -9 <PID>` only as last resort).
 - Do not start multiple dev servers simultaneously; strictPort intentionally prevents auto-switching ports.
 
+Additional hardening (already applied)
+- host: true with strictPort: true on port 3000 enforced in vite.config.js
+- allowedHosts explicitly includes localhost, 127.0.0.1, 0.0.0.0
+- HMR stabilized via ws protocol and clientPort = 3000 for container usage
+- Watch ignores: `.env`, `.env.*`, `vite.config.*`, `index.html`, `post_process_status.lock`, lockfiles, node_modules
+- fs.strict with allow root only to avoid unexpected path access
+
 Upgrading later
 - When moving to Node >=20.19, update devDependencies in package.json:
   - vite to ^7 (or later)
